@@ -101,13 +101,9 @@ CodingFire.exe --render 目录       # 把各档火势渲染成 PNG
 ## 致谢
 
 本项目是 macOS 版 **[TinyFire](https://github.com/wdkwdkwdk/tinyfire)**（作者
-[@wdkwdkwdk](https://github.com/wdkwdkwdk)，MIT 协议）的 Windows 客户端重写。
-沿用了它的项目思路与核心算法 —— 像素火势、悬停卡片的实时速率估算、TPM 锚点分档、
-累计型来源取高水位差额的入库策略。数据源口径同时对齐
+[@wdkwdkwdk](https://github.com/wdkwdkwdk)，MIT 协议）的 Windows 版本，
+感谢原作者给出的创意与核心算法。数据源口径对齐
 [juejin-cn/juejin-usage](https://github.com/juejin-cn/juejin-usage)。
-
-差异只在平台这一层：Swift → C# / WinForms / GDI，SpriteKit 粒子 → 手写像素热场，
-SQLite → NDJSON（去掉 native 依赖），NSWindow → `UpdateLayeredWindow` 分层窗。
 
 ## 协议
 

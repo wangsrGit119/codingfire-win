@@ -107,15 +107,9 @@ CodingFire.exe --render out-dir    # render each fire tier to PNG
 ## Credits
 
 A Windows rewrite of the macOS app **[TinyFire](https://github.com/wdkwdkwdk/tinyfire)**
-by [@wdkwdkwdk](https://github.com/wdkwdkwdk) (MIT). The project idea and the core
-algorithms are carried over: the pixel fire, the hover card's live rate estimate,
-the TPM tier anchors, and the high-water-mark ingestion used for cumulative
-sources. Data-source semantics are aligned with
+by [@wdkwdkwdk](https://github.com/wdkwdkwdk) (MIT). Thanks for the original idea
+and the core algorithms. Data-source semantics are aligned with
 [juejin-cn/juejin-usage](https://github.com/juejin-cn/juejin-usage).
-
-Only the platform layer differs: Swift to C# / WinForms / GDI, SpriteKit particles
-to a hand-written pixel heat field, SQLite to NDJSON (dropping the native
-dependency), and `NSWindow` to an `UpdateLayeredWindow` layered window.
 
 ## License
 
