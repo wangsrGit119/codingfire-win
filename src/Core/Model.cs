@@ -42,7 +42,13 @@ namespace TinyFire.Core
         DeepSeekHarness,
         CommandCode,
         OpenClaw,
-        EveryCode
+        EveryCode,
+
+        // ---- 同一工具的「地区版本」变体 ----
+        // WorkBuddy 国内版与国外版是两份独立安装，日志根目录不同（~/.workbuddy
+        // 与 ~/.workbuddy-ai），格式一模一样。分开统计才能看出是哪边在烧 token。
+        // 必须追加在枚举末尾：索引即配色分带的序号，插在中间会让既有来源集体变色。
+        WorkBuddyIntl
     }
 
     public static class UsageSources
@@ -76,7 +82,8 @@ namespace TinyFire.Core
             UsageSource.DeepSeekHarness,
             UsageSource.CommandCode,
             UsageSource.OpenClaw,
-            UsageSource.EveryCode
+            UsageSource.EveryCode,
+            UsageSource.WorkBuddyIntl
         };
 
         private static readonly string[] RawNames =
@@ -84,7 +91,8 @@ namespace TinyFire.Core
             "claude_code", "codex", "cursor", "grok", "pi", "amp",
             "workbuddy", "codebuddy", "qoder", "qwen", "kimi", "copilot",
             "zcode", "opencode", "gemini", "kiro", "droid", "cline",
-            "roocode", "kilocode", "dsh", "command-code", "openclaw", "every-code"
+            "roocode", "kilocode", "dsh", "command-code", "openclaw", "every-code",
+            "workbuddy-intl"
         };
 
         private static readonly string[] DisplayNames =
@@ -92,7 +100,8 @@ namespace TinyFire.Core
             "Claude Code", "Codex", "Cursor", "Grok", "Pi", "Amp",
             "WorkBuddy", "CodeBuddy", "Qoder", "Qwen Code", "Kimi", "GitHub Copilot",
             "ZCode", "OpenCode", "Gemini CLI", "Kiro", "Droid", "Cline",
-            "Roo Code", "Kilo Code", "DeepSeek Harness", "Command Code", "OpenClaw", "Every Code"
+            "Roo Code", "Kilo Code", "DeepSeek Harness", "Command Code", "OpenClaw", "Every Code",
+            "WorkBuddy INTL"
         };
 
         static UsageSources()
@@ -116,10 +125,17 @@ namespace TinyFire.Core
             return null;
         }
 
-        /// <summary>稳定的英文产品名，不做本地化。</summary>
+        /// <summary>
+        /// 稳定、不本地化的英文产品名（用于日志与持久化）。
+        /// 少数来源需要区分地区版本时，用 L10n 的 source.name.&lt;raw&gt; 覆盖显示名
+        /// （例：WorkBuddy 国内版 / 国外版）；没写该键的来源一律走英文名。
+        /// </summary>
         public static string DisplayName(this UsageSource s)
         {
-            return DisplayNames[IndexOf(s)];
+            int i = IndexOf(s);
+            string key = "source.name." + RawNames[i];
+            if (L10n.Has(key)) return L10n.T(key);
+            return DisplayNames[i];
         }
 
         private static int IndexOf(UsageSource s)

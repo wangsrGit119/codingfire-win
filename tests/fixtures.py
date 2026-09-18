@@ -49,6 +49,21 @@ wl("workbuddy/projects/p1/s1.jsonl", [{
 }])
 expected["workbuddy"] = 1500
 
+# ------------------------------------------------------------ WorkBuddy INTL ---
+# 国外版是另一份独立安装，home 是 ~/.workbuddy-ai（这里用 WORKBUDDY_AI_HOME 指到
+# fixtures 下）。jsonl 结构完全一致，所以口径同上；数字与国内版故意不同，
+# 免得「两边都读到同一份文件」这种错误也能碰巧对上。
+# input = 2000-500-200 = 1300 ; total = 1300 + 800 + 500 + 200 = 2800
+wl("workbuddy-intl/projects/p1/s1.jsonl", [{
+    "id": "wb-intl-1", "sessionId": "s1", "type": "message", "timestamp": TS_MS,
+    "providerData": {"rawUsage": {
+        "prompt_tokens": 2000, "completion_tokens": 800,
+        "prompt_tokens_details": {"cached_tokens": 500},
+        "prompt_cache_hit_tokens": 500, "cache_creation_input_tokens": 200,
+    }},
+}])
+expected["workbuddy-intl"] = 2800
+
 # ---------------------------------------------------------------- CodeBuddy ---
 # cacheRead from prompt_tokens_details.cached_tokens; reasoning added to output.
 # input = 2000-400 = 1600 ; total = 1600 + (300+50) + 400 + 0 = 2350

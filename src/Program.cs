@@ -135,12 +135,12 @@ namespace TinyFire
                 sb.AppendLine("data dir  : " + AppPaths.DataDir);
                 sb.AppendLine();
                 sb.AppendLine("sources");
-                sb.AppendLine("  " + Pad("source", 14) + Pad("state", 14) + Pad("today", 12) + "path");
+                sb.AppendLine("  " + Pad("source", NameCol) + Pad("state", 14) + Pad("today", 12) + "path");
                 if (monitor.Statuses != null)
                 {
                     foreach (var st in monitor.Statuses)
                     {
-                        sb.AppendLine("  " + Pad(st.Source.DisplayName(), 14)
+                        sb.AppendLine("  " + Pad(st.Source.DisplayName(), NameCol)
                                       + Pad(st.State.ToString(), 14)
                                       + Pad(L10n.Compact(st.TodayTokens), 12)
                                       + (st.Detail ?? ""));
@@ -156,7 +156,7 @@ namespace TinyFire
                     {
                         int v;
                         monitor.TodayBySource.TryGetValue(src, out v);
-                        if (v > 0) sb.AppendLine("  " + Pad(src.DisplayName(), 14) + v.ToString("N0", CultureInfo.InvariantCulture));
+                        if (v > 0) sb.AppendLine("  " + Pad(src.DisplayName(), NameCol) + v.ToString("N0", CultureInfo.InvariantCulture));
                     }
                 }
 
@@ -190,6 +190,12 @@ namespace TinyFire
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
             return 0;
         }
+
+        /// <summary>
+        /// 报告里「数据源」一列的宽度。要放得下最长的显示名
+        /// "WorkBuddy (INTL)"（16 字符）—— Pad() 超宽会直接截断，别调小。
+        /// </summary>
+        private const int NameCol = 18;
 
         private static string Pad(string s, int width)
         {

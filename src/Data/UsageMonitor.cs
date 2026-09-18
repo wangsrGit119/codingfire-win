@@ -24,6 +24,8 @@ namespace TinyFire.Data
 
         // ---- 新增：多工具聚合。每一项对应 Adapters2.cs 里的一个适配器。 ----
         private readonly WorkBuddyAdapter _workBuddy = new WorkBuddyAdapter();
+        // 国外版 WorkBuddy 是独立安装，home 目录是 ~/.workbuddy-ai，单独统计。
+        private readonly WorkBuddyAdapter _workBuddyIntl = WorkBuddyAdapter.CreateIntl();
         private readonly CodeBuddyAdapter _codeBuddy = new CodeBuddyAdapter();
         private readonly QoderAdapter _qoder = new QoderAdapter();
         private readonly QwenCodeAdapter _qwen = new QwenCodeAdapter();
@@ -180,6 +182,8 @@ namespace TinyFire.Data
                     { UsageSource.OpenClaw, _openClaw },
                     { UsageSource.EveryCode, _everyCode }
                 };
+                // 国外版 WorkBuddy：同一份解析逻辑、另一个 home 目录。
+                _adapterMap[UsageSource.WorkBuddyIntl] = _workBuddyIntl;
             }
             return _adapterMap;
         }

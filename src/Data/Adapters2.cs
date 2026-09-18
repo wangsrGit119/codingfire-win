@@ -139,9 +139,16 @@ namespace TinyFire.Data
     }
 
     // ======================================================================
-    // WorkBuddy — ~/.workbuddy/projects/**/*.jsonl 的 providerData.rawUsage
+    // WorkBuddy — <home>/projects/**/*.jsonl 的 providerData.rawUsage
     //   口径与 CodeBuddy 不同：它的 prompt_tokens 里含缓存，且 reasoning 含在 completion 内。
     //   另有 SQLite 回退：workbuddy.db 的 session_usage（只有总量，没有明细）。
+    //
+    //   国内版与国外版是两份独立安装、两个互不相干的 home 目录：
+    //       国内版  ~/.workbuddy      （app-config.json: locale = zh-CN）
+    //       国外版  ~/.workbuddy-ai   （app-config.json: locale = en-US）
+    //   两者的 jsonl 与 workbuddy.db 结构完全一致，所以共用这一个适配器，
+    //   只把「源标识 / 环境变量名 / 目录名 / 事件 id 前缀」做成构造参数。
+    //   只认 ~/.workbuddy 的话，国外版的用量会整条漏掉。
     // ======================================================================
     internal sealed class WorkBuddyAdapter : LogAdapter
     {
@@ -150,13 +157,40 @@ namespace TinyFire.Data
         private string _dbPath;
         private long _dbLen = -1, _dbTicks = -1;
 
-        public override UsageSource Source { get { return UsageSource.WorkBuddy; } }
+        private readonly UsageSource _source;
+        private readonly string _envName;
+        private readonly string _folderName;
+        private readonly string _idPrefix;
 
-        private static string HomeDir()
+        /// <summary>国内版（历史默认值，事件 id 前缀保持不变，老库可无缝续读）。</summary>
+        public WorkBuddyAdapter()
+            : this(UsageSource.WorkBuddy, "WORKBUDDY_HOME", ".workbuddy", "workbuddy") { }
+
+        public WorkBuddyAdapter(UsageSource source, string envName, string folderName, string idPrefix)
         {
-            string env = PathUtil.Env("WORKBUDDY_HOME");
+            _source = source;
+            _envName = envName;
+            _folderName = folderName;
+            _idPrefix = idPrefix;
+        }
+
+        /// <summary>
+        /// 国外版 WorkBuddy：home 是 ~/.workbuddy-ai，独立成源。
+        /// 集中在这里构造，保证运行时代码与测试夹具用的是同一份配置。
+        /// </summary>
+        public static WorkBuddyAdapter CreateIntl()
+        {
+            return new WorkBuddyAdapter(
+                UsageSource.WorkBuddyIntl, "WORKBUDDY_AI_HOME", ".workbuddy-ai", "workbuddy-intl");
+        }
+
+        public override UsageSource Source { get { return _source; } }
+
+        private string HomeDir()
+        {
+            string env = PathUtil.Env(_envName);
             if (env != null) return PathUtil.ExpandTilde(env);
-            return Path.Combine(PathUtil.Home, ".workbuddy");
+            return Path.Combine(PathUtil.Home, _folderName);
         }
 
         protected override string PrimaryRoot { get { return Path.Combine(HomeDir(), "projects"); } }
@@ -229,8 +263,8 @@ namespace TinyFire.Data
 
             return new UsageEvent
             {
-                Id = "workbuddy:" + msgId,
-                Source = UsageSource.WorkBuddy,
+                Id = _idPrefix + ":" + msgId,
+                Source = _source,
                 Timestamp = ts,
                 Tokens = tok.Total,
                 Breakdown = tok.Breakdown(),
@@ -281,8 +315,8 @@ namespace TinyFire.Data
                     DateTime ts = ParseEpochAny(upd) ?? DateTime.Now;
                     list.Add(new UsageEvent
                     {
-                        Id = prev == 0 ? "workbuddy-db:" + sid : "workbuddy-db:" + sid + "#" + used,
-                        Source = UsageSource.WorkBuddy,
+                        Id = prev == 0 ? _idPrefix + "-db:" + sid : _idPrefix + "-db:" + sid + "#" + used,
+                        Source = _source,
                         Timestamp = ts,
                         Tokens = delta,
                         Breakdown = new UsageBreakdown(delta, null, null, null),

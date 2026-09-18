@@ -53,6 +53,7 @@ namespace TinyFire.Dev
             if (Directory.Exists(fixtures))
             {
                 Env("WORKBUDDY_HOME", P(fixtures, "workbuddy"));
+                Env("WORKBUDDY_AI_HOME", P(fixtures, "workbuddy-intl"));
                 Env("CODEBUDDY_HOME", P(fixtures, "codebuddy"));
                 Env("AI_USAGE_QODER_ROOTS", P(fixtures, "qoder", "projects"));
                 Env("AI_USAGE_QODER_IDE_ROOTS", P(fixtures, "qoder-ide", "Qoder"));
@@ -158,6 +159,7 @@ namespace TinyFire.Dev
             DateTime since = DateTime.Now.Date.AddHours(-12);
 
             Run("workbuddy", new WorkBuddyAdapter(), since);
+            Run("workbuddy-intl", WorkBuddyAdapter.CreateIntl(), since);
             Run("codebuddy", new CodeBuddyAdapter(), since);
             Run("qoder", new QoderAdapter(), since);
             Run("qwen", new QwenCodeAdapter(), since);

@@ -52,6 +52,12 @@ namespace TinyFire.Core
             { "source.state.unsupported", new[] { "Unsupported",   "不支持",   "非対応",     "지원 안 함" } },
             { "source.state.readError",   new[] { "Read error",    "读取失败", "読み取りエラー", "읽기 오류" } },
 
+            // ---- 数据源显示名（只给需要区分地区版本的来源用） ----
+            // WorkBuddy 国内版写 ~/.workbuddy，国外版写 ~/.workbuddy-ai，是两份独立安装，
+            // 这里给它们各加一个地区备注，免得两个 "WorkBuddy" 在列表里分不清。
+            { "source.name.workbuddy",      new[] { "WorkBuddy (CN)",   "WorkBuddy（内）", "WorkBuddy (CN)",   "WorkBuddy (CN)" } },
+            { "source.name.workbuddy-intl", new[] { "WorkBuddy (INTL)", "WorkBuddy（外）", "WorkBuddy (INTL)", "WorkBuddy (INTL)" } },
+
             // ---- 悬停卡片 ----
             { "hover.today",    new[] { "Today",         "今日 Tokens", "本日", "오늘" } },
             { "hover.rate",     new[] { "Rate",          "速率",       "レート", "속도" } },
@@ -209,6 +215,12 @@ namespace TinyFire.Core
             string[] row;
             if (!Table.TryGetValue(key, out row)) return key;
             return row[Column()];
+        }
+
+        /// <summary>该键是否已定义。用于「有覆盖文案就用，没有就退回静态英文名」。</summary>
+        public static bool Has(string key)
+        {
+            return !string.IsNullOrEmpty(key) && Table.ContainsKey(key);
         }
 
         /// <summary>把数字压成 1.2k / 3.4M 这类紧凑写法。</summary>

@@ -238,7 +238,8 @@ namespace TinyFire.Ui
                 GridLines = false,
                 HeaderStyle = ColumnHeaderStyle.Nonclickable
             };
-            _sources.Columns.Add("", 96);
+            // 96 放不下 "WorkBuddy (INTL)"（16 字符），会显示成 "WorkBuddy (IN..."。
+            _sources.Columns.Add("", 132);
             _sources.Columns.Add("", 110);
             _sources.Columns.Add("", 96, HorizontalAlignment.Right);
             _sources.Columns.Add("", 300);
