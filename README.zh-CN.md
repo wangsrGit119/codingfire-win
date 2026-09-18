@@ -7,6 +7,8 @@
 [![.NET](https://img.shields.io/badge/.NET-3.5%20%2F%20CLR%202.0-512BD4)](#系统要求)
 [![Release](https://img.shields.io/github/v/release/wangsrGit119/codingfire-win)](../../releases)
 
+<p align="center"><img src="assets/example_01.gif" width="344" alt="CodingFire 演示 —— 像素篝火随当前 token 消耗速率变化"></p>
+
 把 AI 编程烧掉的 token 变成桌面上的一把像素篝火 —— 火势就是当前的 token 消耗速率。
 
 一个常驻桌面顶层的小篝火，读取 AI 编程工具本来就写在磁盘上的 token 用量日志。
