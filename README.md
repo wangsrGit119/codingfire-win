@@ -9,7 +9,10 @@ Turn your AI coding token burn into a pixel campfire on the desktop.
 
 **English** · [简体中文](README.zh-CN.md)
 
-<p align="center"><img src="assets/example_01.gif" width="344" alt="CodingFire - the pixel campfire reacting to the current token burn rate"></p>
+<p align="center">
+  <img src="assets/example_01.gif" width="344" alt="CodingFire - campfire with a green-tinted flame">
+  <img src="assets/example_02.gif" width="344" alt="CodingFire - campfire with the classic orange flame">
+</p>
 
 A small always-on-top campfire that reads the token usage logs your AI coding
 tools already write to disk. The faster you burn tokens, the bigger the fire.
