@@ -6,15 +6,6 @@
 *.dll
 *.zip
 
-# Test/build output
-tests/_fixtures_test.exe
-tests/_fixtures_test.pdb
-tests/_fixtures/
-tests/_fixtures_got.txt
-tests/_fixtures_run.txt
-tests/_fixtures_expected.json
-tests/_rate_got.txt
-
 # Local Roslyn (drop it in if you want modern C#; not committed)
 _tools/
 

@@ -84,14 +84,6 @@ The compiler is discovered in this order: a local `_tools\roslyn-4.8.0\`
 additionally needs `Reference Assemblies\...\v3.5\System.Core.dll`, which ships
 with Visual Studio or the Build Tools.
 
-Tests are synthetic per-adapter fixtures - no real user data is involved:
-
-```powershell
-python tests\fixtures.py            # regenerate the fixture tree
-powershell -ExecutionPolicy Bypass -File tests\run-fixtures.ps1
-python tests\check-fixtures.py      # exit code 1 on any mismatch
-```
-
 ## Data and privacy
 
 Everything lives in `%APPDATA%\CodingFire\`:
@@ -202,14 +194,6 @@ powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.0.0   # 打包 +
 编译器按顺序查找：本地 `_tools\roslyn-4.8.0\`（可选，启用 C# 12）→ 系统自带
 .NET 4.x `csc.exe`。3.5 目标额外需要
 `Reference Assemblies\...\v3.5\System.Core.dll`（随 Visual Studio 或 Build Tools 安装）。
-
-测试是每个适配器一份合成夹具，不含任何真实用户数据：
-
-```powershell
-python tests\fixtures.py            # 重新生成夹具树
-powershell -ExecutionPolicy Bypass -File tests\run-fixtures.ps1
-python tests\check-fixtures.py      # 任何不一致就以退出码 1 失败
-```
 
 ## 数据放在哪
 
