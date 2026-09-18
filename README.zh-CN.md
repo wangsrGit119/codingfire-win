@@ -107,4 +107,4 @@ CodingFire.exe --render 目录       # 把各档火势渲染成 PNG
 
 ## 协议
 
-MIT —— 同 macOS 版 [TinyFire](https://github.com/wdkwdkwdk/tinyfire)。详见 [LICENSE](./LICENSE)。
+MIT —— 详见 [LICENSE](./LICENSE)。
