@@ -1,5 +1,5 @@
 //
-//  Palette.cs — TinyFire for Windows
+//  Palette.cs — CodingFire for Windows
 //
 //  像素调色板 + 多来源火焰色带。数值逐条对应 macOS 版
 //  PixelCampfireAtlas.swift 里的 PixelPalette 与 SourceFlameColors.swift。
@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Fire
+namespace CodingFire.Fire
 {
     /// <summary>RGBA 四元组（与 Swift 版元组同序）。</summary>
     public struct Rgba

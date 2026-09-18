@@ -1,5 +1,5 @@
 //
-//  UsageMonitor.cs — TinyFire for Windows
+//  UsageMonitor.cs — CodingFire for Windows
 //
 //  扫描调度：每 4 秒增量读一次各数据源日志，去重、入库、喂火、刷新统计。
 //  与 macOS 版 UsageMonitor 行为对齐（含初次 baseline、Claude 同 id 取最丰富快照、静默唤醒添柴）。
@@ -8,9 +8,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Data
+namespace CodingFire.Data
 {
     internal sealed class UsageMonitor
     {

@@ -1,5 +1,5 @@
 //
-//  Model.cs — TinyFire for Windows
+//  Model.cs — CodingFire for Windows
 //
 //  与 macOS 版 UsageEvent.swift / FireStateMachine 中的数据结构一一对应。
 //
@@ -7,7 +7,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace TinyFire.Core
+namespace CodingFire.Core
 {
     /// <summary>
     /// 数据来源。rawValue 用于持久化与配色 key。

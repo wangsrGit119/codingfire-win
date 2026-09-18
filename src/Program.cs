@@ -1,5 +1,5 @@
 //
-//  Program.cs — TinyFire for Windows
+//  Program.cs — CodingFire for Windows
 //
 //  入口。除正常启动外还提供两个无界面模式，方便在没有人盯着屏幕时验证：
 //    --dump [file]    扫描本地日志，把统计结果写成文本报告
@@ -15,12 +15,12 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using TinyFire.Core;
-using TinyFire.Data;
-using TinyFire.Fire;
-using TinyFire.Ui;
+using CodingFire.Core;
+using CodingFire.Data;
+using CodingFire.Fire;
+using CodingFire.Ui;
 
-namespace TinyFire
+namespace CodingFire
 {
     internal static class Program
     {
@@ -43,7 +43,7 @@ namespace TinyFire
         {
             try
             {
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tinyfire-crash.txt");
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "codingfire-crash.txt");
                 File.WriteAllText(path, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + ex, new UTF8Encoding(false));
             }
             catch (Exception) { }
@@ -65,7 +65,7 @@ namespace TinyFire
 
             // 单实例：第二个进程直接退出，避免托盘出现两把火
             bool created;
-            using (var mutex = new Mutex(true, "TinyFire.SingleInstance", out created))
+            using (var mutex = new Mutex(true, "CodingFire.SingleInstance", out created))
             {
                 if (!created) return 0;
 
@@ -74,7 +74,7 @@ namespace TinyFire
 
                 try
                 {
-                    using (var app = new TinyFireApp())
+                    using (var app = new CodingFireApp())
                     {
                         Application.Run(app);
                     }
@@ -82,7 +82,7 @@ namespace TinyFire
                 catch (Exception ex)
                 {
                     Log.Warn("fatal: " + ex);
-                    MessageBox.Show(ex.Message, "TinyFire", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(ex.Message, "CodingFire", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return 1;
                 }
             }
@@ -96,15 +96,15 @@ namespace TinyFire
         private static int Dump(string target)
         {
             string path = string.IsNullOrEmpty(target)
-                ? Path.Combine(Directory.GetCurrentDirectory(), "tinyfire-dump.txt")
+                ? Path.Combine(Directory.GetCurrentDirectory(), "codingfire-dump.txt")
                 : target;
 
-            // 顺手容错：万一给的是目录，就写进该目录下的 tinyfire-dump.txt，
+            // 顺手容错：万一给的是目录，就写进该目录下的 codingfire-dump.txt，
             // 否则 File.WriteAllText 会甩出一个和用法无关的「访问被拒绝」。
             try
             {
                 if (!string.IsNullOrEmpty(target) && Directory.Exists(target))
-                    path = Path.Combine(target, "tinyfire-dump.txt");
+                    path = Path.Combine(target, "codingfire-dump.txt");
             }
             catch (Exception) { }
 
@@ -130,7 +130,7 @@ namespace TinyFire
                 monitor.Stop();
                 store.Flush();
 
-                sb.AppendLine("TinyFire Windows — local usage report");
+                sb.AppendLine("CodingFire Windows — local usage report");
                 sb.AppendLine("time      : " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
                 sb.AppendLine("data dir  : " + AppPaths.DataDir);
                 sb.AppendLine();

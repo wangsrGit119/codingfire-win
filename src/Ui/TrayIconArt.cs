@@ -1,5 +1,5 @@
 //
-//  TrayIconArt.cs — TinyFire for Windows
+//  TrayIconArt.cs — CodingFire for Windows
 //
 //  程序化生成托盘图标与窗口图标：一把像素小火堆，不依赖外部资源文件。
 //
@@ -11,7 +11,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
     internal static class TrayIconArt
     {

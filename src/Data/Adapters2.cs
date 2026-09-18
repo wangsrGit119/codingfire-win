@@ -1,5 +1,5 @@
 //
-//  Adapters2.cs — TinyFire for Windows
+//  Adapters2.cs — CodingFire for Windows
 //
 //  多工具聚合：为原版 macOS（只有 Claude Code / Codex / Cursor / Grok / Pi / Amp 六个源）
 //  补上国内常见的其余工具。
@@ -17,9 +17,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Data
+namespace CodingFire.Data
 {
     // ======================================================================
     // 公共小工具
@@ -1900,7 +1900,7 @@ namespace TinyFire.Data
     //
     //   Kiro / Antigravity / QwenWork
     //     这几家的本地日志里没有真实 token 元数据，官方追踪器是靠
-    //     「字符数 ÷ 4」之类的启发式估算出来的。TinyFire 的火焰是给人看趋势的
+    //     「字符数 ÷ 4」之类的启发式估算出来的。CodingFire 的火焰是给人看趋势的
     //     信号，混进估算值只会让它变成噪音，所以宁可不记。
     //
     //   需要 SQLite 且本机没有对应库的：Mimo / Kilo CLI / Hermes / Goose / Zed / Warp

@@ -1,5 +1,5 @@
 //
-//  FireStateMachine.cs — TinyFire for Windows
+//  FireStateMachine.cs — CodingFire for Windows
 //
 //  三个互相独立的状量：
 //    intensity 火势 —— 最近 60 秒的消耗强度，涨得快、落得也快
@@ -10,9 +10,9 @@
 
 using System;
 using System.Collections.Generic;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Fire
+namespace CodingFire.Fire
 {
     /// <summary>调试 / 控制台里冻结火焰外观用的预设。</summary>
     public enum FirePreviewStyle { Out, Ember, Hush, Glow, Crackle, Roar, Blaze }

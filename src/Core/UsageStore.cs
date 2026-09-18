@@ -1,5 +1,5 @@
 //
-//  UsageStore.cs — TinyFire for Windows
+//  UsageStore.cs — CodingFire for Windows
 //
 //  本地用量事件库。macOS 版用 SQLite，Windows 版改用「追加式 NDJSON + 内存索引」：
 //   - 零外部依赖（不需要 native sqlite3.dll）
@@ -13,7 +13,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace TinyFire.Core
+namespace CodingFire.Core
 {
     public sealed class UsageStore
     {

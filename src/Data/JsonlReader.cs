@@ -1,5 +1,5 @@
 //
-//  JsonlReader.cs — TinyFire for Windows
+//  JsonlReader.cs — CodingFire for Windows
 //
 //  JSONL 增量读取：按字节游标 seek，只读新增部分；跨块不完整的行留到下次。
 //  与 macOS 版 UsageMonitor.readJSONLDetached 语义一致，包含两个自愈分支：
@@ -14,9 +14,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Data
+namespace CodingFire.Data
 {
     internal static class JsonlReader
     {

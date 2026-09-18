@@ -1,5 +1,5 @@
 //
-//  Adapters.cs — TinyFire for Windows
+//  Adapters.cs — CodingFire for Windows
 //
 //  五种「本地日志型」数据源的解析器（Claude Code / Codex / Grok / Pi / Amp）。
 //  每一项都对应 macOS 版 Data\*LogAdapter.swift，口径保持一致：
@@ -13,9 +13,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Data
+namespace CodingFire.Data
 {
     internal static class PathUtil
     {

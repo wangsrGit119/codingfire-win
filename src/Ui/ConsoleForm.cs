@@ -1,5 +1,5 @@
 //
-//  ConsoleForm.cs — TinyFire for Windows
+//  ConsoleForm.cs — CodingFire for Windows
 //
 //  控制台：统计 / 数据源 / 设置 / 关于。对应 macOS 版的 Console 窗口。
 //  全部控件代码构建（无 designer），方便单文件编译。
@@ -11,14 +11,14 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Windows.Forms;
-using TinyFire.Core;
-using TinyFire.Fire;
+using CodingFire.Core;
+using CodingFire.Fire;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
     internal sealed class ConsoleForm : Form
     {
-        private readonly TinyFireApp _app;
+        private readonly CodingFireApp _app;
 
         private TabControl _tabs;
         private TabPage _tabStats, _tabSources, _tabSettings, _tabAbout;
@@ -50,7 +50,7 @@ namespace TinyFire.Ui
 
         private Timer _refresh;
 
-        public ConsoleForm(TinyFireApp app)
+        public ConsoleForm(CodingFireApp app)
         {
             _app = app;
             BuildUi();

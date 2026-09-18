@@ -1,7 +1,7 @@
 //
-//  Settings.cs — TinyFire for Windows
+//  Settings.cs — CodingFire for Windows
 //
-//  单文件 JSON 设置 + 本地路径约定。全部落在 %APPDATA%\TinyFire 下，不写注册表。
+//  单文件 JSON 设置 + 本地路径约定。全部落在 %APPDATA%\CodingFire 下，不写注册表。
 //
 
 using System;
@@ -10,7 +10,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace TinyFire.Core
+namespace CodingFire.Core
 {
     public enum FlameSize { Small, Medium, Large }
 
@@ -68,13 +68,13 @@ namespace TinyFire.Core
             {
                 // 允许用环境变量指定数据目录：便携模式 / 自动化验证时不污染真实用户数据
                 string overridden = null;
-                try { overridden = Environment.GetEnvironmentVariable("TINYFIRE_DATA_DIR"); }
+                try { overridden = Environment.GetEnvironmentVariable("CODINGFIRE_DATA_DIR"); }
                 catch (Exception) { }
                 if (!string.IsNullOrEmpty(overridden))
                     overridden = overridden.Trim();
 
                 string dir = string.IsNullOrEmpty(overridden)
-                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TinyFire")
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CodingFire")
                     : Path.GetFullPath(overridden);
 
                 Directory.CreateDirectory(dir);
@@ -86,7 +86,7 @@ namespace TinyFire.Core
         public static string UsageFile { get { return Path.Combine(DataDir, "usage.ndjson"); } }
         public static string CursorsFile { get { return Path.Combine(DataDir, "cursors.json"); } }
         public static string MetaFile { get { return Path.Combine(DataDir, "meta.json"); } }
-        public static string LogFile { get { return Path.Combine(DataDir, "tinyfire.log"); } }
+        public static string LogFile { get { return Path.Combine(DataDir, "codingfire.log"); } }
 
         public static string Home
         {

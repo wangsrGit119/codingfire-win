@@ -1,5 +1,5 @@
 //
-//  LayeredWindow.cs — TinyFire for Windows
+//  LayeredWindow.cs — CodingFire for Windows
 //
 //  桌面悬浮窗基类：无边框 + 逐像素透明（UpdateLayeredWindow）+ 不抢焦点。
 //  用分层窗口而不是 TransparencyKey，因为篝火需要真正的 alpha（余烬渐隐、火星淡出）。
@@ -12,7 +12,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
     internal class LayeredWindow : Form
     {

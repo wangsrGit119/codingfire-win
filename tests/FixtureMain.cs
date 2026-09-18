@@ -10,11 +10,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using TinyFire.Core;
-using TinyFire.Data;
-using TinyFire.Fire;
+using CodingFire.Core;
+using CodingFire.Data;
+using CodingFire.Fire;
 
-namespace TinyFire.Dev
+namespace CodingFire.Dev
 {
     internal static class FixtureMain
     {
@@ -40,12 +40,12 @@ namespace TinyFire.Dev
 
             // Real settings, if any, so Load() sees what the user sees.
             string realSettings = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TinyFire");
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CodingFire");
             realSettings = Path.Combine(realSettings, "settings.json");
             if (File.Exists(realSettings))
                 File.Copy(realSettings, Path.Combine(probeDir, "settings.json"), true);
 
-            Environment.SetEnvironmentVariable("TINYFIRE_DATA_DIR", probeDir);
+            Environment.SetEnvironmentVariable("CODINGFIRE_DATA_DIR", probeDir);
 
             // Point every source at the (quiet) fixture corpus so the monitor
             // doesn't grind through the real 100M+ token logs while probing.
@@ -86,7 +86,7 @@ namespace TinyFire.Dev
                 {
                     System.Windows.Forms.Application.EnableVisualStyles();
                     System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                    using (var app = new TinyFire.Ui.TinyFireApp())
+                    using (var app = new CodingFire.Ui.CodingFireApp())
                     {
                         log.Add("app ctor ok");
                         app.OpenConsole();

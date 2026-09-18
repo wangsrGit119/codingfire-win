@@ -30,7 +30,7 @@ $srcs += (Join-Path $tests 'FixtureMain.cs')
 
 $exe = Join-Path $tests '_fixtures_test.exe'
 $argList = @('/nologo','/target:exe','/platform:x86','/codepage:65001','/nostdlib+','/noconfig',
-             '/main:TinyFire.Dev.FixtureMain', ('/out:' + $exe)) + $refs + $srcs
+             '/main:CodingFire.Dev.FixtureMain', ('/out:' + $exe)) + $refs + $srcs
 if ($compiler.Modern) { $argList = @('/langversion:latest') + $argList }
 
 $r = & $compiler.Path @argList 2>&1

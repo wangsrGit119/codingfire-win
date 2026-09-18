@@ -1,6 +1,6 @@
-# build.ps1 - TinyFire for Windows
+# build.ps1 - CodingFire for Windows
 #
-# Builds TinyFire.exe with whatever C# compiler is available on the system. The
+# Builds CodingFire.exe with whatever C# compiler is available on the system. The
 # search order is:
 #   1. _tools\roslyn-4.8.0\... - optional local copy of the Roslyn toolset
 #      (used during development to enable C# 12 features; checked in nowhere
@@ -33,7 +33,7 @@ $ProgressPreference = 'SilentlyContinue'
 $root       = $PSScriptRoot
 $srcDir     = Join-Path $root 'src'
 $distDir    = if ($Net4) { Join-Path $root 'dist-net4' } else { Join-Path $root 'dist' }
-$exePath    = Join-Path $distDir 'TinyFire.exe'
+$exePath    = Join-Path $distDir 'CodingFire.exe'
 $configOut  = "$exePath.config"
 
 function Find-Compiler {

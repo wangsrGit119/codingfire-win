@@ -1,5 +1,5 @@
 //
-//  SqliteReader.cs — TinyFire for Windows
+//  SqliteReader.cs — CodingFire for Windows
 //
 //  极简只读 SQLite 读取器。
 //
@@ -22,9 +22,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Data
+namespace CodingFire.Data
 {
     /// <summary>一张表的 schema 信息。</summary>
     internal sealed class SqliteTable

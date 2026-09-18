@@ -1,14 +1,14 @@
 //
-//  PixelFireEngine.cs — TinyFire for Windows
+//  PixelFireEngine.cs — CodingFire for Windows
 //
 //  Doom 风格的像素热场：每帧把下一行的热量往上抬、按风力横向偏移、再按档位散热。
 //  逻辑与 macOS 版 PixelFireEngine 逐行对应，输出从 SKMutableTexture 换成 BGRA 字节缓冲。
 //
 
 using System;
-using TinyFire.Core;
+using CodingFire.Core;
 
-namespace TinyFire.Fire
+namespace CodingFire.Fire
 {
     internal sealed class PixelFireEngine
     {

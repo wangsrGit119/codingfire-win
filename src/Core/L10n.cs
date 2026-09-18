@@ -1,5 +1,5 @@
 //
-//  L10n.cs — TinyFire for Windows
+//  L10n.cs — CodingFire for Windows
 //
 //  四种语言 + 跟随系统。键名沿用 macOS 版 Localizable.xcstrings 的命名习惯。
 //
@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace TinyFire.Core
+namespace CodingFire.Core
 {
     public enum AppLanguage { System, English, ChineseSimplified, Japanese, Korean }
 
@@ -20,7 +20,7 @@ namespace TinyFire.Core
         private static readonly Dictionary<string, string[]> Table = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             // ---- 应用 ----
-            { "app.name",          new[] { "TinyFire", "TinyFire", "TinyFire", "TinyFire" } },
+            { "app.name",          new[] { "CodingFire", "CodingFire", "CodingFire", "CodingFire" } },
             { "app.tagline",       new[] {
                 "If you're burning tokens anyway, light a real fire.",
                 "既然都在烧 token，不如真的生一把火。",
@@ -77,11 +77,11 @@ namespace TinyFire.Core
             { "menu.togglePause",    new[] { "Pause / resume animation", "暂停 / 继续动画", "アニメーション一時停止", "애니메이션 일시정지" } },
             { "menu.size",           new[] { "Campfire size",   "火焰尺寸",   "焚き火サイズ", "모닥불 크기" } },
             { "menu.language",       new[] { "Language",        "语言",       "言語", "언어" } },
-            { "menu.about",          new[] { "About TinyFire",  "关于 TinyFire", "TinyFire について", "TinyFire 정보" } },
+            { "menu.about",          new[] { "About CodingFire",  "关于 CodingFire", "CodingFire について", "CodingFire 정보" } },
             { "menu.quit",           new[] { "Quit",            "退出",       "終了", "종료" } },
 
             // ---- 控制台 ----
-            { "console.title",       new[] { "TinyFire Console", "TinyFire 控制台", "TinyFire コンソール", "TinyFire 콘솔" } },
+            { "console.title",       new[] { "CodingFire Console", "CodingFire 控制台", "CodingFire コンソール", "CodingFire 콘솔" } },
             { "console.tab.stats",   new[] { "Stats",    "统计",   "統計", "통계" } },
             { "console.tab.sources", new[] { "Sources",  "数据源", "データ源", "데이터 소스" } },
             { "console.tab.settings",new[] { "Settings", "设置",   "設定", "설정" } },
@@ -131,10 +131,10 @@ namespace TinyFire.Core
             { "settings.preview",      new[] { "Preview",               "火势预览",     "プレビュー",   "미리보기" } },
             { "settings.live",         new[] { "Live",                  "实时",         "ライブ",       "실시간" } },
 
-            { "about.privacy", new[] { "TinyFire only reads local usage logs. Nothing is uploaded.",
-                                       "TinyFire 只读取本机日志，用量数据不会上传。",
-                                       "TinyFire はローカルのログのみを読み取ります。アップロードは行いません。",
-                                       "TinyFire는 로컬 로그만 읽습니다. 어떤 데이터도 업로드하지 않습니다." } },
+            { "about.privacy", new[] { "CodingFire only reads local usage logs. Nothing is uploaded.",
+                                       "CodingFire 只读取本机日志，用量数据不会上传。",
+                                       "CodingFire はローカルのログのみを読み取ります。アップロードは行いません。",
+                                       "CodingFire는 로컬 로그만 읽습니다. 어떤 데이터도 업로드하지 않습니다." } },
             { "about.origin",  new[] { "A Windows port of wdkwdkwdk/tinyfire (macOS, MIT), rebuilt in C# / WinForms.",
                                        "本项目是 wdkwdkwdk/tinyfire（macOS，MIT 协议）的 Windows 版本，用 C# / WinForms 重写。",
                                        "wdkwdkwdk/tinyfire（macOS, MIT）の Windows 版を C# / WinForms で再実装。",

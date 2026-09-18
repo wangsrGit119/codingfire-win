@@ -1,5 +1,5 @@
 //
-//  TinyFireApp.cs — TinyFire for Windows
+//  CodingFireApp.cs — CodingFire for Windows
 //
 //  应用装配：设置 → 事件库 → 扫描器 → 火焰状态机 → 悬浮窗 → 托盘图标 → 控制台。
 //  所有跨线程更新都被 UsageMonitor 归拢回 UI 线程，这里不再做二次调度。
@@ -10,14 +10,14 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using Microsoft.Win32;
-using TinyFire.Core;
-using TinyFire.Data;
-using TinyFire.Fire;
-using TinyFire.Ui;
+using CodingFire.Core;
+using CodingFire.Data;
+using CodingFire.Fire;
+using CodingFire.Ui;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
-    internal sealed class TinyFireApp : ApplicationContext
+    internal sealed class CodingFireApp : ApplicationContext
     {
         public readonly Settings Settings;
         public readonly UsageStore Store;
@@ -30,7 +30,7 @@ namespace TinyFire.Ui
         private Timer _tick;
         private bool _quitting;
 
-        public TinyFireApp()
+        public CodingFireApp()
         {
             Dpi.Initialize();
 
@@ -83,7 +83,7 @@ namespace TinyFire.Ui
             _tray = new NotifyIcon
             {
                 Icon = TrayIconArt.AppIcon(),
-                Text = "TinyFire",
+                Text = "CodingFire",
                 Visible = true
             };
             _tray.DoubleClick += delegate { OpenConsole(); };

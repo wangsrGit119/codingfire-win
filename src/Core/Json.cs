@@ -1,5 +1,5 @@
 //
-//  Json.cs — TinyFire for Windows
+//  Json.cs — CodingFire for Windows
 //
 //  极简 JSON 解析器 + 类型化取值包装。
 //  不依赖 System.Web.Extensions / System.Text.Json，保证在 .NET Framework 4.x 上零外部依赖。
@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace TinyFire.Core
+namespace CodingFire.Core
 {
     public static class Json
     {

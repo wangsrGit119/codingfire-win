@@ -1,5 +1,5 @@
 //
-//  FlameForm.cs — TinyFire for Windows
+//  FlameForm.cs — CodingFire for Windows
 //
 //  桌面篝火本体 + 悬停卡片。
 //  动效节奏与 macOS 版对齐：模拟 12fps（减少动态效果 6fps）、窗口刷新 20Hz、悬停数字 0.12s 一刷。
@@ -11,10 +11,10 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Windows.Forms;
-using TinyFire.Core;
-using TinyFire.Fire;
+using CodingFire.Core;
+using CodingFire.Fire;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
     internal sealed class HoverRow
     {

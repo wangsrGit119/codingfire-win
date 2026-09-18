@@ -1,5 +1,5 @@
 //
-//  CampfireRenderer.cs — TinyFire for Windows
+//  CampfireRenderer.cs — CodingFire for Windows
 //
 //  把热场 + 柴堆 + 火星合成到一张 32bppPArgb 位图（预乘 alpha，供 UpdateLayeredWindow 使用）。
 //  布局逐项对应 macOS 版 FireScene：
@@ -12,10 +12,10 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using TinyFire.Core;
-using TinyFire.Fire;
+using CodingFire.Core;
+using CodingFire.Fire;
 
-namespace TinyFire.Ui
+namespace CodingFire.Ui
 {
     internal sealed class CampfireRenderer : IDisposable
     {
