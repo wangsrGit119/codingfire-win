@@ -112,8 +112,12 @@ namespace CodingFire
             try
             {
                 AppPaths.DataDir.ToString();
-                var settings = Settings.Load();
-                L10n.Current = settings.Language;
+
+                // 报告本身（表头、列名、"today total" 等）全是写死的英文，所以这里
+                // 也把语言钉死在英文 —— 否则数据源显示名会跟着系统语言变，
+                // 出现「英文表头 + 中文来源名」的混排。这是给人贴进 issue 的诊断文本，
+                // 统一成英文比跟随界面语言有用。
+                L10n.Current = AppLanguage.English;
 
                 var store = new UsageStore();
                 store.Open();

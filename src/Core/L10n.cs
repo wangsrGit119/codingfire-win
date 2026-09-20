@@ -160,6 +160,8 @@ namespace CodingFire.Core
 
         private static AppLanguage _current = AppLanguage.System;
         private static string _resolved = "en";
+        /// <summary>是否已经真正解析过一次。<see cref="Resolve"/> 只在 setter 里跑。</summary>
+        private static bool _resolvedOnce;
 
         public static event Action LanguageChanged;
 
@@ -168,9 +170,21 @@ namespace CodingFire.Core
             get { return _current; }
             set
             {
-                if (_current == value) return;
+                // 「值没变就跳过」在这里有个陷阱：_current 的初值就是 AppLanguage.System，
+                // 而 System 正是 Settings.Language 的默认值。于是启动时那句
+                //     L10n.Current = Settings.Language;
+                // 会被短路掉，Resolve() 一次都不跑，_resolved 停留在初始的 "en" ——
+                // 表现就是「语言选的是跟随系统，中文系统上却显示英文」。
+                // 所以只有「值没变 **且** 已经解析过」才提前返回。
+                if (_current == value && _resolvedOnce) return;
+
+                // 首次解析不是「用户切换了语言」，不该广播事件（此刻通常也还没有订阅者）。
+                bool changed = _resolvedOnce && _current != value;
                 _current = value;
                 _resolved = Resolve(value);
+                _resolvedOnce = true;
+
+                if (!changed) return;
                 var h = LanguageChanged;
                 if (h != null) h();
             }
