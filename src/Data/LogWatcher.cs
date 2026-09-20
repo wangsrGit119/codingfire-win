@@ -36,6 +36,9 @@ namespace CodingFire.Data
         private readonly Timer _debounce;
         private volatile bool _disposed;
 
+        /// <summary>是否已有一个「待触发的合并窗口」。</summary>
+        private int _pending;
+
         public LogWatcher(Action onChanged, Action onOverflow)
         {
             _onChanged = onChanged;
@@ -129,6 +132,14 @@ namespace CodingFire.Data
         private void Notify()
         {
             if (_disposed) return;
+
+            // 只在没有待触发窗口时才重新计时。
+            // 如果每个事件都 `Change(DebounceMs, …)` 重置计时器，那么持续写入
+            // （日志每 <200ms 追加一行）会把回调**无限推迟** —— 恰好在最活跃、
+            // 最该实时的时候最不实时。改成「首个事件后 200ms 触发」，
+            // 触发前到达的事件都并进这一次。
+            if (Interlocked.CompareExchange(ref _pending, 1, 0) != 0) return;
+
             try { _debounce.Change(DebounceMs, Timeout.Infinite); }
             catch (ObjectDisposedException) { }
             catch (Exception) { }
@@ -148,6 +159,7 @@ namespace CodingFire.Data
 
         private void OnDebounce(object _)
         {
+            Interlocked.Exchange(ref _pending, 0);
             if (_disposed) return;
             var h = _onChanged;
             if (h == null) return;

@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using CodingFire.Core;
 
@@ -72,6 +73,12 @@ namespace CodingFire.Data
 
         /// <summary>监听挂了之后心跳可以放宽；没挂上就还得靠它兜底。</summary>
         private const int HeartbeatMs = 4000;
+
+        /// <summary>
+        /// 超过这个耗时的一轮扫描记一条告警。事件驱动下扫描可能很密集
+        /// （实测空闲单轮约 35ms，所以 300ms 只会在真的出问题时才响）。
+        /// </summary>
+        private const int SlowScanMs = 300;
 
         /// <summary>最近约 4 分钟内的用量直接算作「正在燃烧」，重启后火不会瞬间熄。</summary>
         private static readonly TimeSpan WarmWindow = TimeSpan.FromMinutes(4);
@@ -333,6 +340,7 @@ namespace CodingFire.Data
 
             ThreadPool.QueueUserWorkItem(delegate
             {
+                var scanClock = Stopwatch.StartNew();
                 var collected = new List<UsageEvent>();
                 var touched = new List<UsageSource>();
 
@@ -390,6 +398,13 @@ namespace CodingFire.Data
                 // 连接状态探测（23 次列目录）也留在后台，并按 StatusProbeSeconds 节流
                 try { ProbeStatuses(false); }
                 catch (Exception ex) { Log.Warn("status probe failed: " + ex.Message); }
+
+                // 扫描现在由文件事件驱动，活跃时可能一秒好几轮 —— 单轮变贵会直接
+                // 变成 CPU 开销，所以留一条慢扫描告警，出问题时有据可查。
+                scanClock.Stop();
+                if (scanClock.ElapsedMilliseconds > SlowScanMs)
+                    Log.Warn("slow scan: " + scanClock.ElapsedMilliseconds + " ms ("
+                             + accepted.Count + " new event(s))");
 
                 Post(delegate
                 {
