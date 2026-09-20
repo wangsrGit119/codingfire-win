@@ -482,6 +482,13 @@ namespace CodingFire.Core
         /// </summary>
         public double ColorMixMinShare = 0.03;
 
+        /// <summary>
+        /// 色带最多同时出现几个来源的颜色。火星只有 12 颗，来源再多每色也分不到
+        /// 两颗，看起来就是一团杂色。砍掉的权重会按比例并回留下的来源，
+        /// 所以火的「分量感」不会因为砍色而变淡。
+        /// </summary>
+        public int ColorMixMaxSources = 5;
+
         public double IntensityRiseSeconds = 2.5;
         public double IntensityFallSeconds = 14;
         /// <summary>Fall tau used after the input stream has gone silent.

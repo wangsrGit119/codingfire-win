@@ -205,6 +205,20 @@ if (-not $configWritten) {
 $size = [math]::Round((Get-Item -LiteralPath $exePath).Length / 1KB, 1)
 Write-Host "built    : $exePath ($size KB)" -ForegroundColor Green
 
+# Report the version the binary actually claims (from src\AssemblyInfo.cs). Every
+# build log then says which version it produced, and release.ps1 asserts the same
+# value against the tag it is about to create.
+$asmVer = ''
+try {
+    $vi = (Get-Item -LiteralPath $exePath).VersionInfo
+    if ($vi -and $vi.ProductVersion) { $asmVer = $vi.ProductVersion.Trim() }
+} catch { }
+if ($asmVer.Length -gt 0) {
+    Write-Host "version  : $asmVer" -ForegroundColor Green
+} else {
+    Write-Host "version  : (none - no version resource in the exe)" -ForegroundColor DarkYellow
+}
+
 # ---------------------------------------------------------------------------
 # Windows 7 compatibility gate - static PE/CLR analysis, run on every build.
 # ---------------------------------------------------------------------------

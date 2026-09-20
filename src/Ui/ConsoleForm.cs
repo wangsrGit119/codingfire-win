@@ -16,6 +16,9 @@ using CodingFire.Fire;
 
 namespace CodingFire.Ui
 {
+    /// <summary>控制台的页签。顺序必须和 BuildUi 里 AddRange 的顺序一致。</summary>
+    public enum ConsoleTab { Sources = 0, Settings = 1, About = 2 }
+
     internal sealed class ConsoleForm : Form
     {
         private readonly CodingFireApp _app;
@@ -65,6 +68,16 @@ namespace CodingFire.Ui
             _refresh.Start();
         }
 
+        public void ShowTab(ConsoleTab tab)
+        {
+            try
+            {
+                int i = (int)tab;
+                if (_tabs != null && i >= 0 && i < _tabs.TabPages.Count) _tabs.SelectedIndex = i;
+            }
+            catch (Exception) { }
+        }
+
         private void LanguageChanged()
         {
             Retranslate();
@@ -73,7 +86,7 @@ namespace CodingFire.Ui
 
         private void Retranslate()
         {
-            Text = L10n.T("console.title");
+            Text = L10n.T("console.title") + " — " + AppInfo.Version;
 
             _tabSources.Text = L10n.T("console.tab.sources");
             _tabSettings.Text = L10n.T("console.tab.settings");
@@ -557,7 +570,7 @@ namespace CodingFire.Ui
 
             if (_aboutBox != null)
             {
-                _aboutBox.Text = L10n.T("app.name") + "  ·  Windows\r\n\r\n"
+                _aboutBox.Text = L10n.T("app.name") + " " + AppInfo.Version + "  ·  Windows\r\n\r\n"
                     + L10n.T("app.tagline") + "\r\n\r\n"
                     + L10n.T("about.origin") + "\r\n\r\n"
                     + L10n.T("about.sources") + "\r\n\r\n"

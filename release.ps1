@@ -100,6 +100,30 @@ $sizeKb = [math]::Round((Get-Item -LiteralPath $exePath).Length / 1KB, 1)
 Ok "$exePath ($sizeKb KB)"
 
 # ---------------------------------------------------------------------------
+# 3b. The binary must claim the version we are about to tag.
+#
+# The version lives in exactly one place (src\AssemblyInfo.cs). Forgetting to
+# bump it is the kind of mistake you only notice when someone reports a bug
+# against "1.0.1" that was actually fixed in 1.0.2 - so refuse to tag instead.
+# ---------------------------------------------------------------------------
+Step "Checking binary version"
+$vi = (Get-Item -LiteralPath $exePath).VersionInfo
+$reported = if ($vi -and $vi.ProductVersion) { $vi.ProductVersion.Trim() } else { '' }
+if ($reported.Length -eq 0) {
+    throw "$exePath carries no version resource. Did src\AssemblyInfo.cs get excluded from the build?"
+}
+if ($reported -ne $ver) {
+    throw @"
+Version mismatch: the binary reports '$reported' but you are releasing '$ver'.
+
+Bump src\AssemblyInfo.cs and rebuild:
+    [assembly: AssemblyFileVersion("$ver")]
+    [assembly: AssemblyInformationalVersion("$ver")]
+"@
+}
+Ok "binary reports $reported"
+
+# ---------------------------------------------------------------------------
 # 4. Package the release asset
 # ---------------------------------------------------------------------------
 Step "Packaging $zipName"
@@ -148,7 +172,7 @@ CodingFire for Windows $tag
 Download the zip, unpack it anywhere and run CodingFire.exe - no installer and no
 runtime needed.
 
-* Single file: CodingFire.exe (~170 KB) + CodingFire.exe.config
+* Single file: CodingFire.exe (~190 KB) + CodingFire.exe.config
 * One binary for Win7 SP1 through Win11 (.NET 3.5 / CLR 2.0 target)
 * 23 read-only local data sources, including WorkBuddy (CN) and WorkBuddy (INTL)
   counted separately

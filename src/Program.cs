@@ -130,7 +130,7 @@ namespace CodingFire
                 monitor.Stop();
                 store.Flush();
 
-                sb.AppendLine("CodingFire Windows — local usage report");
+                sb.AppendLine(AppInfo.Name + " " + AppInfo.Version + " — local usage report");
                 sb.AppendLine("time      : " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
                 sb.AppendLine("data dir  : " + AppPaths.DataDir);
                 sb.AppendLine();

@@ -90,7 +90,8 @@ namespace CodingFire.Ui
             _tray = new NotifyIcon
             {
                 Icon = TrayIconArt.AppIcon(),
-                Text = "CodingFire",
+                // 悬停提示带上版本：有人报问题第一句话就是「你哪个版本」
+                Text = AppInfo.DisplayName,
                 Visible = true
             };
             _tray.DoubleClick += delegate { OpenConsole(); };
@@ -165,6 +166,18 @@ namespace CodingFire.Ui
             var console = new ToolStripMenuItem(L10n.T("menu.console"));
             console.Click += delegate { OpenConsole(); };
             menu.Items.Add(console);
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            // 版本一行放在菜单底部：不用打开任何窗口就能确认手上这个 exe 是哪个版本。
+            // 禁用项（不可点）——它只是信息，不是一个动作。
+            var about = new ToolStripMenuItem(L10n.T("menu.about"));
+            about.Click += delegate { OpenConsole(ConsoleTab.About); };
+            menu.Items.Add(about);
+
+            var version = new ToolStripMenuItem(AppInfo.DisplayName);
+            version.Enabled = false;
+            menu.Items.Add(version);
 
             menu.Items.Add(new ToolStripSeparator());
 
@@ -261,7 +274,9 @@ namespace CodingFire.Ui
 
         public void Rescan() { Monitor.Rescan(); }
 
-        public void OpenConsole()
+        public void OpenConsole() { OpenConsole(ConsoleTab.Sources); }
+
+        public void OpenConsole(ConsoleTab tab)
         {
             if (_console == null || _console.IsDisposed)
             {
@@ -271,6 +286,7 @@ namespace CodingFire.Ui
             _console.Show();
             if (_console.WindowState == FormWindowState.Minimized) _console.WindowState = FormWindowState.Normal;
             _console.Activate();
+            _console.ShowTab(tab);
             _console.RefreshData();
         }
 

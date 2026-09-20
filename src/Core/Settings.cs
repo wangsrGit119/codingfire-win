@@ -175,6 +175,51 @@ namespace CodingFire.Core
         }
     }
 
+    /// <summary>
+    /// 应用元信息。版本号的唯一出处在 <c>src/AssemblyInfo.cs</c> ——
+    /// 这里只是把它读出来，不要在代码里再写一份字面量，否则迟早对不上。
+    /// </summary>
+    public static class AppInfo
+    {
+        public const string Name = "CodingFire";
+
+        private static string _version;
+
+        /// <summary>形如 "1.0.2"。读不到就返回 "0.0.0"，绝不抛异常。</summary>
+        public static string Version
+        {
+            get
+            {
+                if (_version == null) _version = ReadVersion();
+                return _version;
+            }
+        }
+
+        /// <summary>"CodingFire 1.0.2" —— 托盘菜单项和窗口标题用这个。</summary>
+        public static string DisplayName { get { return Name + " " + Version; } }
+
+        private static string ReadVersion()
+        {
+            try
+            {
+                string loc = typeof(AppInfo).Assembly.Location;
+                if (!string.IsNullOrEmpty(loc))
+                {
+                    // ProductVersion = AssemblyInformationalVersion（语义最准的那个），
+                    // FileVersion 是次选。两者都由 AssemblyInfo.cs 提供。
+                    var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(loc);
+                    if (info != null)
+                    {
+                        if (!string.IsNullOrEmpty(info.ProductVersion)) return info.ProductVersion;
+                        if (!string.IsNullOrEmpty(info.FileVersion)) return info.FileVersion;
+                    }
+                }
+            }
+            catch (Exception) { }
+            return "0.0.0";
+        }
+    }
+
     public sealed class Settings
     {
         public FlameSize Size = FlameSize.Medium;
