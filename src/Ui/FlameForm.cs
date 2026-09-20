@@ -142,13 +142,13 @@ namespace CodingFire.Ui
             {
                 // 拖动时把模拟降级，避免透明窗口被反复合成时掉帧
                 _fire.Tick();
-                _renderer.Render(_fire.Snapshot, _settings.Size.PixelScale(), true, Elapsed());
+                _renderer.Render(_fire.LiveSnapshot, _settings.Size.PixelScale(), true, Elapsed());
                 ApplyBitmap(_renderer.Bitmap);
                 return;
             }
 
             _fire.Tick();
-            _renderer.Render(_fire.Snapshot, _settings.Size.PixelScale(), false, Elapsed());
+            _renderer.Render(_fire.LiveSnapshot, _settings.Size.PixelScale(), false, Elapsed());
             ApplyBitmap(_renderer.Bitmap);
 
             UpdateHoverCard();

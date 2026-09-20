@@ -3,8 +3,8 @@
 Turn your AI coding token burn into a pixel campfire on the desktop.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-lightgrey)](#requirements)
-[![.NET](https://img.shields.io/badge/.NET-3.5%20%2F%20CLR%202.0-512BD4)](#requirements)
+[![Platform](https://img.shields.io/badge/platform-Windows%208%20%7C%2010%20%7C%2011-lightgrey)](#requirements)
+[![.NET](https://img.shields.io/badge/.NET-4.x%20%2F%20CLR%204.0-512BD4)](#requirements)
 [![Release](https://img.shields.io/github/v/release/wangsrGit119/codingfire-win)](../../releases)
 
 **English** · [简体中文](README.zh-CN.md)
@@ -29,11 +29,11 @@ tools already write to disk. The faster you burn tokens, the bigger the fire.
 |---|---|
 | Windows 11 / 10 | Nothing - .NET 4.x is in-box |
 | Windows 8 / 8.1 | Nothing - .NET 4.5 is in-box |
-| Windows 7 SP1 | Nothing - .NET 3.5.1 is in-box |
+| Windows 7 | Unsupported |
 
-The binary targets .NET Framework 3.5 / CLR 2.0 and declares both `v4.0` and
-`v2.0.50727` under `supportedRuntime`, so a single build covers Win7 SP1 through
-Win11. It is compiled `/platform:x86` and runs on 32- and 64-bit Windows via WoW64.
+The binary targets .NET Framework 4.x / CLR 4.0 because the statistics console uses
+the WinForms Chart control. It is compiled `/platform:x86` and runs on 32- and
+64-bit Windows via WoW64.
 
 ## Download and run
 
@@ -79,16 +79,13 @@ a few tools whose log schema could not be verified.
 ## Build from source
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build.ps1          # .NET 3.5 target -> dist\
-powershell -ExecutionPolicy Bypass -File build.ps1 -Net4    # .NET 4.x target -> dist-net4\
+powershell -ExecutionPolicy Bypass -File build.ps1          # .NET 4.x target -> dist\
 powershell -ExecutionPolicy Bypass -File build.ps1 -Run     # build, then launch
 powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.0.0   # zip, tag, release
 ```
 
 The compiler is discovered in this order: a local `_tools\roslyn-4.8.0\`
-(optional, enables C# 12), then the in-box .NET 4.x `csc.exe`. The 3.5 target
-additionally needs `Reference Assemblies\...\v3.5\System.Core.dll`, which ships
-with Visual Studio or the Build Tools.
+(optional, enables C# 12), then the in-box .NET 4.x `csc.exe`.
 
 ## Data and privacy
 

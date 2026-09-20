@@ -3,8 +3,8 @@
 [English](README.md) · **简体中文**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-lightgrey)](#系统要求)
-[![.NET](https://img.shields.io/badge/.NET-3.5%20%2F%20CLR%202.0-512BD4)](#系统要求)
+[![Platform](https://img.shields.io/badge/platform-Windows%208%20%7C%2010%20%7C%2011-lightgrey)](#系统要求)
+[![.NET](https://img.shields.io/badge/.NET-4.x%20%2F%20CLR%204.0-512BD4)](#系统要求)
 [![Release](https://img.shields.io/github/v/release/wangsrGit119/codingfire-win)](../../releases)
 
 <p align="center">
@@ -28,11 +28,10 @@
 |---|---|
 | Windows 11 / 10 | 无，开箱即用（自带 .NET 4.x） |
 | Windows 8 / 8.1 | 无，开箱即用（自带 .NET 4.5） |
-| Windows 7 SP1 | 无，开箱即用（自带 .NET 3.5.1） |
+| Windows 7 | 不再支持 |
 
-产物以 .NET 3.5 / CLR 2.0 为目标，并在 `supportedRuntime` 里同时声明 `v4.0` 与
-`v2.0.50727`，所以**一份产物覆盖 Win7 SP1 到 Win11**；`/platform:x86` 经 WoW64
-通吃 32/64 位。
+产物以 .NET 4.x / CLR 4.0 为目标，统计控制台使用 WinForms Chart 控件；`/platform:x86`
+经 WoW64 通吃 32/64 位。
 
 ## 下载与运行
 
@@ -74,15 +73,13 @@ WorkBuddy 的国内版与国外版是两份独立安装、两个 home 目录（`
 ## 从源码构建
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build.ps1          # .NET 3.5 目标 -> dist\
-powershell -ExecutionPolicy Bypass -File build.ps1 -Net4    # .NET 4.x 目标 -> dist-net4\
+powershell -ExecutionPolicy Bypass -File build.ps1          # .NET 4.x 目标 -> dist\
 powershell -ExecutionPolicy Bypass -File build.ps1 -Run     # 构建后直接启动
 powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.0.0   # 打包 + 打 tag + 发布
 ```
 
 编译器按顺序查找：本地 `_tools\roslyn-4.8.0\`（可选，启用 C# 12）→ 系统自带
-.NET 4.x `csc.exe`。3.5 目标额外需要
-`Reference Assemblies\...\v3.5\System.Core.dll`（随 Visual Studio 或 Build Tools 安装）。
+.NET 4.x `csc.exe`。
 
 ## 数据放在哪
 

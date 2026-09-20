@@ -85,6 +85,16 @@ namespace CodingFire.Data
 
         public UsageMonitor(UsageStore store) { _store = store; }
 
+        public List<UsageEvent> RecentEvents(DateTime since, int limit)
+        {
+            return _store.RecentEvents(since, limit);
+        }
+
+        public UsageStore.HistoryStats HistoryStats(DateTime today)
+        {
+            return _store.GetHistoryStats(today);
+        }
+
         // ---- 供 App 注入（全部在 UI 线程被调用） ----
         public Action<double, UsageSource?, DateTime, bool> Ingest = null;
         public Action<int, Dictionary<UsageSource, int>> TodayTokensChanged = null;

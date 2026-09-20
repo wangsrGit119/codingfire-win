@@ -11,13 +11,15 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 using CodingFire.Core;
+using CodingFire.Data;
 using CodingFire.Fire;
 
 namespace CodingFire.Ui
 {
     /// <summary>控制台的页签。顺序必须和 BuildUi 里 AddRange 的顺序一致。</summary>
-    public enum ConsoleTab { Sources = 0, Settings = 1, About = 2 }
+    public enum ConsoleTab { Stats = 0, Sources = 1, Settings = 2, About = 3 }
 
     internal sealed class ConsoleForm : Form
     {
@@ -27,17 +29,16 @@ namespace CodingFire.Ui
         private TabPage _tabStats, _tabSources, _tabSettings, _tabAbout;
 
         // 统计页
-        private Label _lblTodayCaption, _lblTierCaption, _lblBreakdownCaption, _lblTimelineCaption, _lblBySourceCaption;
+        private Label _lblTodayCaption, _lblTierCaption, _lblBreakdownCaption, _lblTimelineCaption, _lblBySourceCaption, _lblHistoryValue;
         private Label _lblTodayValue, _lblTierValue, _lblPeakValue;
         private SourceBars _bars;
         private UsageBars _breakdownBars;
-        private HourlyChart _chart;
-        private FirePreviewBox _preview;
+        private Chart _chart;
         private FlowLayoutPanel _flameColorsRow;
         private ToolTip _toolTip = new ToolTip();
         private Panel[] _colorCircles;
-        private Panel _previewButtons;
-        private Button _btnLive;
+        private UsageStore.HistoryStats _historyStats;
+        private DateTime _historyStatsAt = DateTime.MinValue;
 
         // 数据源页
         private ListView _sources;
@@ -57,9 +58,8 @@ namespace CodingFire.Ui
         {
             _app = app;
             BuildUi();
-            Retranslate();
-            RefreshData();
             LanguageChanged();
+            RefreshData();
             L10n.LanguageChanged += LanguageChanged;
 
             _refresh = new Timer();
@@ -92,15 +92,12 @@ namespace CodingFire.Ui
             _tabSettings.Text = L10n.T("console.tab.settings");
             _tabAbout.Text = L10n.T("console.tab.about");
 
-            // Stats tab removed; skip its labels (fields are null)
+            _tabStats.Text = L10n.T("console.tab.stats");
             if (_lblTodayCaption != null) _lblTodayCaption.Text = L10n.T("stats.today");
             if (_lblTierCaption != null) _lblTierCaption.Text = L10n.T("stats.tier");
             if (_lblBySourceCaption != null) _lblBySourceCaption.Text = L10n.T("stats.bySource");
             if (_lblBreakdownCaption != null) _lblBreakdownCaption.Text = L10n.T("stats.breakdown");
             if (_lblTimelineCaption != null) _lblTimelineCaption.Text = L10n.T("stats.timeline");
-
-            // 注意：_btnLive 在 RebuildPreviewButtons() 里才创建（本方法末尾会调它），
-            // 这里不能再对它赋值 —— 首次构造时它还是 null（双击托盘打开控制台就炸在这）。
 
             _btnRescan.Text = L10n.T("sources.rescan");
             _lblNoSource.Text = L10n.T("hover.none");
@@ -132,7 +129,6 @@ namespace CodingFire.Ui
             _cmbLanguage.Items.Add("한국어");
             _cmbLanguage.SelectedIndex = langIdx < 0 ? 0 : langIdx;
 
-            RebuildPreviewButtons();
         }
 
         // ------------------------------------------------------------------
@@ -142,8 +138,8 @@ namespace CodingFire.Ui
         private void BuildUi()
         {
             Font = new Font("Segoe UI", 9f);
-            ClientSize = new Size(640, 470);
-            MinimumSize = new Size(560, 420);
+            ClientSize = new Size(820, 700);
+            MinimumSize = new Size(680, 560);
             StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = false;
             ShowInTaskbar = true;
@@ -156,8 +152,9 @@ namespace CodingFire.Ui
             _tabSources = new TabPage();
             _tabSettings = new TabPage();
             _tabAbout = new TabPage();
-            _tabs.TabPages.AddRange(new TabPage[] { _tabSources, _tabSettings, _tabAbout });
+            _tabs.TabPages.AddRange(new TabPage[] { _tabStats, _tabSources, _tabSettings, _tabAbout });
 
+            BuildStatsTab();
             BuildSourcesTab();
             BuildSettingsTab();
             BuildAboutTab();
@@ -170,14 +167,13 @@ namespace CodingFire.Ui
                 Dock = DockStyle.Fill,
                 Padding = new Padding(14),
                 ColumnCount = 2,
-                RowCount = 4
+                RowCount = 3
             };
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
             _tabStats.Controls.Add(root);
 
             // Today total + tier card (dark themed)
@@ -190,48 +186,89 @@ namespace CodingFire.Ui
                 Font = new Font("Segoe UI", 26f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(255, 180, 80)
             };
-            _lblTierCaption = new Label { AutoSize = true, Location = new Point(240, 10), ForeColor = Color.FromArgb(130, 110, 90) };
-            _lblTierValue = new Label { AutoSize = true, Location = new Point(240, 28), Font = new Font("Segoe UI", 13f, FontStyle.Bold), ForeColor = Color.FromArgb(255, 200, 120) };
-            _lblPeakValue = new Label { AutoSize = true, Location = new Point(240, 54), ForeColor = Color.FromArgb(120, 100, 80) };
+            _lblTierCaption = new Label { AutoSize = true, Location = new Point(360, 10), ForeColor = Color.FromArgb(130, 110, 90) };
+            _lblTierValue = new Label { AutoSize = true, Location = new Point(360, 28), Font = new Font("Segoe UI", 13f, FontStyle.Bold), ForeColor = Color.FromArgb(255, 200, 120) };
+            _lblPeakValue = new Label { AutoSize = true, Location = new Point(360, 55), ForeColor = Color.FromArgb(120, 100, 80) };
+            _lblHistoryValue = new Label { AutoSize = true, Location = new Point(10, 78), ForeColor = Color.FromArgb(145, 125, 105) };
             head.Controls.Add(_lblTodayCaption);
             head.Controls.Add(_lblTodayValue);
             head.Controls.Add(_lblTierCaption);
             head.Controls.Add(_lblTierValue);
             head.Controls.Add(_lblPeakValue);
+            head.Controls.Add(_lblHistoryValue);
             root.Controls.Add(head, 0, 0);
+            root.SetColumnSpan(head, 2);
 
-            // 火势预览
-            var previewPanel = new Panel { Dock = DockStyle.Fill };
-            _preview = new FirePreviewBox(_app.Fire, _app.Settings) { Dock = DockStyle.Fill };
-            var previewHost = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(24, 20, 18) };
-            previewHost.Controls.Add(_preview);
-            root.Controls.Add(previewHost, 1, 0);
-            root.SetRowSpan(previewHost, 2);
-
-            _previewButtons = new Panel { Dock = DockStyle.Fill };
-            root.Controls.Add(_previewButtons, 1, 2);
-
-            // By source / breakdown / timeline (dark themed)
-            var left = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Color.FromArgb(28, 24, 22) };
-            left.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            left.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-            left.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            left.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+            // Sources and token breakdown each get their own column.
+            var sourcePanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.FromArgb(28, 24, 22), Padding = new Padding(4, 2, 4, 4) };
+            sourcePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            sourcePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            var breakdownPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.FromArgb(28, 24, 22), Padding = new Padding(4, 2, 4, 4) };
+            breakdownPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            breakdownPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             _lblBySourceCaption = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 130, 110) };
             _bars = new SourceBars { Dock = DockStyle.Fill };
             _lblBreakdownCaption = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 130, 110) };
             _breakdownBars = new UsageBars { Dock = DockStyle.Fill };
-            left.Controls.Add(_lblBySourceCaption, 0, 0);
-            left.Controls.Add(_bars, 0, 1);
-            left.Controls.Add(_lblBreakdownCaption, 0, 2);
-            left.Controls.Add(_breakdownBars, 0, 3);
-            root.Controls.Add(left, 0, 1);
+            sourcePanel.Controls.Add(_lblBySourceCaption, 0, 0);
+            sourcePanel.Controls.Add(_bars, 0, 1);
+            breakdownPanel.Controls.Add(_lblBreakdownCaption, 0, 0);
+            breakdownPanel.Controls.Add(_breakdownBars, 0, 1);
+            root.Controls.Add(sourcePanel, 0, 1);
+            root.Controls.Add(breakdownPanel, 1, 1);
 
+            var timeline = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.FromArgb(28, 24, 22),
+                Padding = new Padding(4, 2, 4, 4)
+            };
+            timeline.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            timeline.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             _lblTimelineCaption = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 130, 110) };
-            _chart = new HourlyChart { Dock = DockStyle.Fill };
-            root.Controls.Add(_lblTimelineCaption, 0, 2);
-            root.Controls.Add(_chart, 0, 3);
+            _chart = BuildTimelineChart();
+            timeline.Controls.Add(_lblTimelineCaption, 0, 0);
+            timeline.Controls.Add(_chart, 0, 1);
+            root.Controls.Add(timeline, 0, 2);
+            root.SetColumnSpan(timeline, 2);
+        }
+
+        private static Chart BuildTimelineChart()
+        {
+            var chart = new Chart { Dock = DockStyle.Fill, BackColor = Color.FromArgb(28, 24, 22), BorderlineColor = Color.FromArgb(28, 24, 22) };
+            var area = new ChartArea("usage");
+            area.BackColor = Color.FromArgb(28, 24, 22);
+            area.AxisX.LineColor = Color.FromArgb(75, 62, 52);
+            area.AxisX.MajorGrid.Enabled = false;
+            area.AxisX.LabelStyle.ForeColor = Color.FromArgb(156, 132, 110);
+            area.AxisX.LabelStyle.Font = new Font("Segoe UI", 7f);
+            area.AxisX.Minimum = 0;
+            area.AxisX.Maximum = 23;
+            area.AxisX.Interval = 3;
+            area.AxisX.IsMarginVisible = false;
+            area.AxisX.LabelStyle.Format = "00";
+            area.AxisY.Enabled = AxisEnabled.False;
+            area.AxisY.MajorGrid.Enabled = false;
+            area.AxisY.LineWidth = 0;
+            area.Position = new ElementPosition(3, 5, 94, 88);
+            chart.ChartAreas.Add(area);
+
+            var series = new Series("tokens");
+            series.ChartArea = "usage";
+            series.ChartType = SeriesChartType.Column;
+            series.Color = Color.FromArgb(244, 141, 49);
+            series.BackSecondaryColor = Color.FromArgb(255, 212, 105);
+            series.BackGradientStyle = GradientStyle.TopBottom;
+            series.BorderColor = Color.FromArgb(255, 224, 135);
+            series.BorderWidth = 1;
+            series.IsValueShownAsLabel = false;
+            series.ToolTip = "#VALX:00:00\n#VAL{N0} tokens";
+            chart.Series.Add(series);
+            chart.Legends.Clear();
+            return chart;
         }
 
         private void BuildSourcesTab()
@@ -378,27 +415,6 @@ namespace CodingFire.Ui
             };
         }
 
-        private void RebuildPreviewButtons()
-        {
-            // Stats tab removed; _previewButtons is null — skip
-            if (_previewButtons == null) return;
-
-            _previewButtons.Controls.Clear();
-            _btnLive = new Button { Text = L10n.T("settings.live"), Width = 62, Height = 26, Location = new Point(0, 0) };
-            _btnLive.Click += delegate { _app.Fire.ReturnToLive(); RefreshData(); };
-            _previewButtons.Controls.Add(_btnLive);
-
-            int x = 68;
-            foreach (var style in FirePreviews.All)
-            {
-                var b = new Button { Text = style.Label(), Width = 56, Height = 26, Location = new Point(x, 0) };
-                var captured = style;
-                b.Click += delegate { _app.Fire.ShowPreview(captured); RefreshData(); };
-                _previewButtons.Controls.Add(b);
-                x += 60;
-            }
-        }
-
         /// <summary>Flame color presets.</summary>
         private static readonly ExoticFireTheme[] ExoticFires =
         {
@@ -528,9 +544,18 @@ namespace CodingFire.Ui
         public void RefreshData()
         {
             var monitor = _app.Monitor;
-            var snap = _app.Fire.Snapshot;
+            var snap = _app.Fire.LiveSnapshot;
 
-            if (_lblTodayValue != null) _lblTodayValue.Text = L10n.Grouped(monitor.TodayTokens);
+            if (_lblTodayValue != null)
+            {
+                string today = L10n.Compact(monitor.TodayTokens);
+                string exactToday = L10n.Grouped(monitor.TodayTokens);
+                float size = today.Length >= 9 ? 24f : 26f;
+                if (_lblTodayValue.Text != today) _lblTodayValue.Text = today;
+                _toolTip.SetToolTip(_lblTodayValue, exactToday);
+                if (Math.Abs(_lblTodayValue.Font.Size - size) > 0.1f)
+                    _lblTodayValue.Font = new Font("Segoe UI", size, FontStyle.Bold);
+            }
             if (_lblTierValue != null) { _lblTierValue.Text = snap.Tier.Label(); _lblTierValue.ForeColor = TierColor(snap.Phase); }
 
             int peakHour = -1, peakVal = 0;
@@ -543,6 +568,7 @@ namespace CodingFire.Ui
                 _lblPeakValue.Text = peakHour >= 0
                     ? L10n.T("stats.peak") + "  " + peakHour.ToString("00") + ":00 · " + L10n.Compact(peakVal)
                     : "";
+            if (_lblHistoryValue != null) _lblHistoryValue.Text = HistorySummary(monitor);
 
             if (_bars != null) _bars.Set(monitor.TodayBySource);
             if (_breakdownBars != null) _breakdownBars.Set(
@@ -556,7 +582,7 @@ namespace CodingFire.Ui
                     monitor.TodayBreakdown.Input ?? 0, monitor.TodayBreakdown.Output ?? 0,
                     monitor.TodayBreakdown.CacheRead ?? 0, monitor.TodayBreakdown.CacheWrite ?? 0
                 });
-            if (_chart != null) _chart.Set(hourly);
+            UpdateTimeline(hourly);
 
             // 数据源列表
             _sources.BeginUpdate();
@@ -596,7 +622,32 @@ namespace CodingFire.Ui
                     + L10n.T("about.gap");
             }
 
-            if (_preview != null) _preview.Invalidate();
+        }
+
+        private void UpdateTimeline(List<HourlyUsage> hourly)
+        {
+            if (_chart == null || _chart.Series.Count == 0) return;
+            var points = _chart.Series[0].Points;
+            points.Clear();
+            if (hourly == null) return;
+            for (int i = 0; i < hourly.Count; i++)
+                points.AddXY(hourly[i].Hour, hourly[i].Tokens);
+        }
+
+        private string HistorySummary(UsageMonitor monitor)
+        {
+            // History can contain far more rows than today's live view. Refreshing it on
+            // every UI tick would turn an idle console into a periodic full-store scan.
+            if (_historyStats == null || (DateTime.Now - _historyStatsAt).TotalSeconds >= 30)
+            {
+                _historyStats = monitor.HistoryStats(DateTime.Now);
+                _historyStatsAt = DateTime.Now;
+            }
+            var stats = _historyStats;
+            return L10n.T("stats.last7") + ": " + L10n.Compact(stats.Last7Days) + "   " +
+                L10n.T("stats.last30") + ": " + L10n.Compact(stats.Last30Days) + "\r\n" +
+                L10n.T("stats.activeDays") + ": " + stats.ActiveDaysLast30 + "/30   " +
+                L10n.T("stats.storedHistory") + ": " + L10n.Compact(stats.RetainedTotal);
         }
 
         private static int IndexOf(FlameSize[] arr, FlameSize v)
@@ -713,10 +764,10 @@ protected override void OnFormClosing(FormClosingEventArgs e)
             using (var fb = new Font("Segoe UI", 8.5f, FontStyle.Bold))
             {
                 int y = 4;
-                int barH = 14;
-                int barTop = y + 13;
+                int barH = 8;
                 foreach (var row in _rows)
                 {
+                    int barTop = y + 18;
                     var accent = SourceFlameColors.Accent(row.Key);
                     var c = Color.FromArgb((int)(accent[0] * 255), (int)(accent[1] * 255), (int)(accent[2] * 255));
                     // Colored dot indicator
@@ -742,8 +793,8 @@ protected override void OnFormClosing(FormClosingEventArgs e)
                         using (var trackPen = new Pen(Color.FromArgb(40, 35, 30)))
                             Gfx.DrawRoundedRect(g, trackPen, 16, barTop, Width - 80, barH, 3);
                     }
-                    y += 28;
-                    if (y > Height - 20) break;
+                    y += 32;
+                    if (y > Height - 24) break;
                 }
             }
         }
@@ -781,7 +832,7 @@ protected override void OnFormClosing(FormClosingEventArgs e)
                     Color.FromArgb(140, 140, 160)
                 };
                 int y = 4;
-                int barH = 12;
+                int barH = 8;
                 for (int i = 0; i < _labels.Length && i < _values.Length; i++)
                 {
                     using (var _ub1 = new SolidBrush(Color.FromArgb(160, 140, 120)))
@@ -793,11 +844,11 @@ protected override void OnFormClosing(FormClosingEventArgs e)
                     float frac = (float)Fraction(i);
                     int barW = Math.Max(2, (int)((Width - 8) * frac));
                     using (var b = new SolidBrush(colors[i % colors.Length]))
-                        Gfx.FillRoundedRect(g, b, 0, y + 16, barW, barH, 2);
+                        Gfx.FillRoundedRect(g, b, 0, y + 18, barW, barH, 2);
                     using (var trackPen = new Pen(Color.FromArgb(40, 35, 30)))
-                        Gfx.DrawRoundedRect(g, trackPen, 0, y + 16, Width - 8, barH, 2);
-                    y += 30;
-                    if (y > Height - 18) break;
+                        Gfx.DrawRoundedRect(g, trackPen, 0, y + 18, Width - 8, barH, 2);
+                    y += 29;
+                    if (y > Height - 22) break;
                 }
             }
         }
@@ -879,52 +930,4 @@ protected override void OnFormClosing(FormClosingEventArgs e)
         }
     }
 
-    /// <summary>控制台里的实时火焰预览。</summary>
-    internal sealed class FirePreviewBox : Control
-    {
-        private readonly FireStateMachine _fire;
-        private readonly Settings _settings;
-        private readonly CampfireRenderer _renderer = new CampfireRenderer();
-        private readonly Timer _timer;
-        private readonly DateTime _start = DateTime.Now;
-
-        public FirePreviewBox(FireStateMachine fire, Settings settings)
-        {
-            _fire = fire;
-            _settings = settings;
-            DoubleBuffered = true;
-            BackColor = Color.FromArgb(24, 20, 18);
-
-            _timer = new Timer { Interval = 60 };
-            _timer.Tick += delegate { if (Visible) Invalidate(); };
-            _timer.Start();
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            if (Width < 8 || Height < 8) return;
-            double px = Math.Min(Width * 0.62 / PixelFireEngine.FireW, Height * 0.72 / (PixelFireEngine.FireH + PixelFireEngine.LogH));
-            if (px < 1) px = 1;
-
-            int w = (int)Math.Ceiling(PixelFireEngine.FireW * px);
-            int h = (int)Math.Ceiling((PixelFireEngine.FireH + PixelFireEngine.LogH) * px);
-            _renderer.Resize(w, h);
-            _renderer.Render(_fire.Snapshot, px / Dpi.Scale, false, (DateTime.Now - _start).TotalSeconds);
-
-            int x = (Width - w) / 2;
-            int y = (Height - h) / 2;
-            e.Graphics.DrawImage(_renderer.Bitmap, x, y, w, h);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _timer.Stop();
-                _timer.Dispose();
-                _renderer.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-    }
 }

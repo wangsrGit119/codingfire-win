@@ -10,11 +10,9 @@
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -SkipBuild
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -NoPush
-#   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -Net4
 #
 # -SkipBuild   reuse an existing dist\CodingFire.exe instead of rebuilding
 # -NoPush      do everything locally (zip + tag) and print the push commands
-# -Net4        build the .NET 4.x target instead of the Win7-compatible 3.5 one
 # -Notes       release notes body; a sensible default is generated if omitted
 # -Force       overwrite an existing local tag of the same name
 #
@@ -27,7 +25,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Version,
     [string]$Notes = '',
-    [switch]$Net4,
     [switch]$SkipBuild,
     [switch]$NoPush,
     [switch]$Force
@@ -37,7 +34,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $root = $PSScriptRoot
-$distDir = if ($Net4) { Join-Path $root 'dist-net4' } else { Join-Path $root 'dist' }
+$distDir = Join-Path $root 'dist'
 $exePath = Join-Path $distDir 'CodingFire.exe'
 $cfgPath = "$exePath.config"
 
@@ -58,7 +55,7 @@ $zipName = "CodingFire-win-x86-$tag.zip"
 $zipPath = Join-Path $root $zipName
 
 Write-Host "CodingFire release : $tag" -ForegroundColor White
-Write-Host "target           : $(if ($Net4) { '.NET 4.x (CLR 4.0)' } else { '.NET 3.5 (CLR 2.0), Win7 SP1..Win11' })" -ForegroundColor DarkGray
+Write-Host "target           : .NET 4.x (CLR 4.0), Windows 8..11" -ForegroundColor DarkGray
 
 # ---------------------------------------------------------------------------
 # 2. Sanity: must be a git repo, tag must not exist yet
@@ -90,7 +87,7 @@ if ($SkipBuild) {
     # too - exactly what we want, since a failed build must never produce a tag.
     # (Spawning a child powershell would only hide that failure behind an exit code.)
     $buildScript = Join-Path $root 'build.ps1'
-    if ($Net4) { & $buildScript -Net4 } else { & $buildScript }
+    & $buildScript
 }
 
 if (-not (Test-Path -LiteralPath $exePath)) { throw "Missing $exePath - build first (drop -SkipBuild)." }
@@ -173,7 +170,7 @@ Download the zip, unpack it anywhere and run CodingFire.exe - no installer and n
 runtime needed.
 
 * Single file: CodingFire.exe (~190 KB) + CodingFire.exe.config
-* One binary for Win7 SP1 through Win11 (.NET 3.5 / CLR 2.0 target)
+* One binary for Windows 8 through Windows 11 (.NET 4.x / CLR 4.0 target)
 * 23 read-only local data sources, including WorkBuddy (CN) and WorkBuddy (INTL)
   counted separately
 "@

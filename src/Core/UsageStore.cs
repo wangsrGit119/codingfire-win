@@ -247,6 +247,43 @@ namespace CodingFire.Core
             public readonly Dictionary<UsageSource, int> BySource = new Dictionary<UsageSource, int>();
         }
 
+        /// <summary>统计页的历史摘要。直接在事件库内聚合，避免 UI 刷新时复制和排序全部事件。</summary>
+        public sealed class HistoryStats
+        {
+            public long Last7Days;
+            public long Last30Days;
+            public long RetainedTotal;
+            public int ActiveDaysLast30;
+        }
+
+        public HistoryStats GetHistoryStats(DateTime today)
+        {
+            lock (_gate)
+            {
+                DateTime day = today.Date;
+                DateTime retainedStart = day.AddDays(-(RetainDays - 1));
+                DateTime sevenStart = day.AddDays(-6);
+                DateTime thirtyStart = day.AddDays(-29);
+                var activeDays = new HashSet<DateTime>();
+                var result = new HistoryStats();
+
+                for (int i = 0; i < _events.Count; i++)
+                {
+                    var e = _events[i];
+                    if (e == null || e.Tokens <= 0 || e.Timestamp < retainedStart || e.Timestamp >= day.AddDays(1)) continue;
+                    result.RetainedTotal += e.Tokens;
+                    if (e.Timestamp >= thirtyStart)
+                    {
+                        result.Last30Days += e.Tokens;
+                        activeDays.Add(e.Timestamp.Date);
+                    }
+                    if (e.Timestamp >= sevenStart) result.Last7Days += e.Tokens;
+                }
+                result.ActiveDaysLast30 = activeDays.Count;
+                return result;
+            }
+        }
+
         public TodayStats TodayTotals(DateTime now)
         {
             lock (_gate)

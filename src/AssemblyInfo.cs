@@ -22,5 +22,5 @@ using System.Reflection;
 [assembly: AssemblyCopyright("MIT licensed. See LICENSE for details.")]
 
 [assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.3")]
-[assembly: AssemblyInformationalVersion("1.0.3")]
+[assembly: AssemblyFileVersion("1.0.4")]
+[assembly: AssemblyInformationalVersion("1.0.4")]

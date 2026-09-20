@@ -9,14 +9,8 @@
 #      Windows 7+ install via the .NET 4.x in-box runtime
 #   3. %WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe - 32-bit fallback
 #
-# Two targets:
-#   default  -> .NET Framework 3.5 / CLR 2.0  (dist\)          runs on Win7 SP1 .. Win11
-#   -Net4    -> .NET Framework 4.x  / CLR 4.0  (dist-net4\)    needs .NET 4.x installed
-#
-# The default target is the widest: Win7 SP1 ships 3.5.1 in-box, and the CLR 4 runtime
-# on Win8/10/11 executes a CLR 2.0 assembly directly (see the dual supportedRuntime
-# entries in the generated .config). A CLR 4.0 assembly can NOT go the other way -
-# it needs .NET 4.x, which bare Win7 SP1 does not include.
+# The statistics console uses the .NET 4.x WinForms Chart control. The output therefore
+# targets CLR 4.0 and supports Windows 8 and later; Windows 7 is intentionally unsupported.
 #
 # This script is intentionally ASCII-only so PowerShell 5.1 never mis-decodes it.
 
@@ -24,7 +18,7 @@
 param(
     [switch]$Run,
     [switch]$Dump,
-    [switch]$Net4
+    [string]$OutputDir
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +37,8 @@ foreach ($v in @('http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY')) {
 
 $root       = $PSScriptRoot
 $srcDir     = Join-Path $root 'src'
-$distDir    = if ($Net4) { Join-Path $root 'dist-net4' } else { Join-Path $root 'dist' }
+$Net4       = $true
+$distDir    = if ([string]::IsNullOrEmpty($OutputDir)) { Join-Path $root 'dist' } else { [System.IO.Path]::GetFullPath($OutputDir) }
 $exePath    = Join-Path $distDir 'CodingFire.exe'
 $configOut  = "$exePath.config"
 
@@ -82,7 +77,7 @@ if ($Net4) {
     if (-not (Test-Path -LiteralPath $refRoot)) {
         $refRoot = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319'
     }
-    foreach ($n in @('mscorlib.dll','System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll')) {
+    foreach ($n in @('mscorlib.dll','System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Windows.Forms.DataVisualization.dll')) {
         $full = Join-Path $refRoot $n
         if (Test-Path -LiteralPath $full) { $refArgs += "/reference:$full" }
     }

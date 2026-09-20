@@ -106,21 +106,7 @@ namespace CodingFire.Fire
         /// <summary>外部调用以触发色阶重建（用户换了火焰颜色）。</summary>
         public void BumpPaletteEpoch() { ColorPaletteEpoch++; }
 
-        public FirePreviewStyle? PreviewStyle;
-        public FireSnapshot CustomPreview;
         public bool AnimationPaused;
-
-        public bool IsPreviewing { get { return PreviewStyle.HasValue || CustomPreview != null; } }
-
-        public FireSnapshot Snapshot
-        {
-            get
-            {
-                if (CustomPreview != null) return CustomPreview;
-                if (PreviewStyle.HasValue) return PreviewStyle.Value.Snapshot();
-                return LiveSnapshot;
-            }
-        }
 
         // ------------------------------------------------------------------
 
@@ -149,47 +135,6 @@ namespace CodingFire.Fire
             TokensPerSecond = 0;
             LiveSnapshot = FireSnapshot.Extinguished();
             _lastTick = DateTime.Now;
-        }
-
-        public void ShowPreview(FirePreviewStyle style)
-        {
-            CustomPreview = null;
-            PreviewStyle = style;
-        }
-
-        public void ShowCustomPreview(double intensity)
-        {
-            double i = Math.Min(1, Math.Max(0, intensity));
-            PreviewStyle = null;
-
-            FireTier tier;
-            if (i < 0.18) tier = FireTier.Hush;
-            else if (i < 0.35) tier = FireTier.Glow;
-            else if (i < 0.58) tier = FireTier.Crackle;
-            else if (i < 0.82) tier = FireTier.Roar;
-            else tier = FireTier.Blaze;
-
-            FirePhase phase;
-            if (i < 0.02) phase = FirePhase.Out;
-            else if (i < 0.08) phase = FirePhase.Ember;
-            else phase = FirePhase.Flame;
-
-            CustomPreview = new FireSnapshot
-            {
-                Intensity = (phase == FirePhase.Ember || phase == FirePhase.Out) ? 0 : i,
-                Fuel = i,
-                EmberHeat = phase == FirePhase.Ember ? 0.85 : Math.Max(0.2, i * 0.9),
-                Phase = phase,
-                SparkBurst = i,
-                Tier = tier,
-                FlameAccent = LiveSnapshot.FlameAccent,
-            };
-        }
-
-        public void ReturnToLive()
-        {
-            PreviewStyle = null;
-            CustomPreview = null;
         }
 
         public void UpdateTodayTokens(int tokens, Dictionary<UsageSource, int> bySource)
@@ -225,7 +170,7 @@ namespace CodingFire.Fire
                 next.EmberHeat,
                 next.Fuel * _tuning.EmberFromFuelGain + InstantaneousRatePush(tokens) * 0.25));
 
-            if (animate && !PreviewStyle.HasValue)
+            if (animate)
             {
                 double burst = Math.Min(1.0, InstantaneousRatePush(tokens));
                 next.SparkBurst = Math.Min(_tuning.MaxSparkBurst, next.SparkBurst + 0.2 + burst * 0.9);

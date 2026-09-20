@@ -279,13 +279,20 @@ namespace CodingFire.Ui
 
         public void Rescan() { Monitor.Rescan(); }
 
-        public void OpenConsole() { OpenConsole(ConsoleTab.Sources); }
+        public void OpenConsole() { OpenConsole(ConsoleTab.Stats); }
 
         public void OpenConsole(ConsoleTab tab)
         {
             if (_console == null || _console.IsDisposed)
             {
-                _console = new ConsoleForm(this);
+                try { _console = new ConsoleForm(this); }
+                catch (Exception ex)
+                {
+                    Log.Warn("console creation failed: " + ex);
+                    MessageBox.Show(L10n.T("console.openFailed") + "\r\n\r\n" + ex.Message,
+                        AppInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
                 _console.FormClosed += delegate { _console = null; };
             }
             _console.Show();
