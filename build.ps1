@@ -109,7 +109,18 @@ $sources = Get-ChildItem -LiteralPath $srcDir -Recurse -Filter '*.cs' | Select-O
 if (-not $sources -or $sources.Count -eq 0) { throw "No .cs sources under $srcDir" }
 
 if (-not (Test-Path -LiteralPath $distDir)) { [System.IO.Directory]::CreateDirectory($distDir) | Out-Null }
-if (Test-Path -LiteralPath $exePath) { [System.IO.File]::Delete($exePath) }
+if (Test-Path -LiteralPath $exePath) {
+    # A running CodingFire.exe holds its own image open, so the delete fails with a
+    # bare "access denied" and the script dies with no compiler output at all - which
+    # reads exactly like a mystery compile failure. Say what is actually wrong.
+    try {
+        [System.IO.File]::Delete($exePath)
+    } catch [System.IO.IOException] {
+        throw "Cannot replace $exePath - it is still running. Quit CodingFire (tray icon -> Quit) and build again."
+    } catch [System.UnauthorizedAccessException] {
+        throw "Cannot replace $exePath - it is still running. Quit CodingFire (tray icon -> Quit) and build again."
+    }
+}
 
 $argList = @(
     '/nologo',
@@ -173,7 +184,23 @@ $config = @'
   </runtime>
 </configuration>
 '@
-[System.IO.File]::WriteAllText($configOut, $config, (New-Object System.Text.UTF8Encoding($true)))
+# Just-written executables get briefly locked by real-time antivirus / the indexer,
+# so the config write can fail with "in use by another process" even though nothing
+# of ours is running. Retry a few times before giving up.
+$configWritten = $false
+for ($i = 0; $i -lt 10 -and -not $configWritten; $i++) {
+    try {
+        [System.IO.File]::WriteAllText($configOut, $config, (New-Object System.Text.UTF8Encoding($true)))
+        $configWritten = $true
+    } catch [System.IO.IOException] {
+        Start-Sleep -Milliseconds 200
+    } catch [System.UnauthorizedAccessException] {
+        Start-Sleep -Milliseconds 200
+    }
+}
+if (-not $configWritten) {
+    throw "Could not write $configOut - something is holding the file open. Quit CodingFire and build again."
+}
 
 $size = [math]::Round((Get-Item -LiteralPath $exePath).Length / 1KB, 1)
 Write-Host "built    : $exePath ($size KB)" -ForegroundColor Green

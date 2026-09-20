@@ -395,6 +395,10 @@ namespace CodingFire.Data
                 try { _store.Flush(); }
                 catch (Exception ex) { Log.Warn("flush failed: " + ex.Message); }
 
+                // 游标一轮只落盘一次（原来是每个文件一次，整份重写）
+                try { _store.FlushCursors(); }
+                catch (Exception ex) { Log.Warn("cursor flush failed: " + ex.Message); }
+
                 // 连接状态探测（23 次列目录）也留在后台，并按 StatusProbeSeconds 节流
                 try { ProbeStatuses(false); }
                 catch (Exception ex) { Log.Warn("status probe failed: " + ex.Message); }

@@ -27,6 +27,8 @@ namespace CodingFire.Core
         /// </summary>
         private readonly HashSet<string> _knownPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, CursorState> _cursors = new Dictionary<string, CursorState>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>游标有改动待落盘（见 SetFileCursor 的说明）。</summary>
+        private bool _cursorsDirty;
         private readonly Dictionary<string, string> _meta = new Dictionary<string, string>(StringComparer.Ordinal);
 
         // ---- 今日统计的增量累加器 ----
@@ -42,9 +44,14 @@ namespace CodingFire.Core
         private readonly StringBuilder _appendBuffer = new StringBuilder();
         private StreamWriter _appendWriter;
         private int _pendingWrites;
+        /// <summary>连续追加失败次数（成功一次就归零），只用来给告警限流。</summary>
+        private int _appendFailures;
 
         /// <summary>超过这个天数的历史事件在启动时丢弃，避免内存无限增长。</summary>
         private const int RetainDays = 45;
+
+        /// <summary>追加失败时最多在内存里保留这么多待写数据，超了才放弃（见 FlushAppendsLocked）。</summary>
+        private const int MaxRetainedAppendBytes = 4 * 1024 * 1024;
 
         private sealed class CursorState
         {
@@ -168,11 +175,29 @@ namespace CodingFire.Core
             }
             catch (Exception ex)
             {
-                Log.Warn("append failed: " + ex.Message);
+                // 缓冲保留后每次插入都会再试一次，文件被长期占住时会刷屏 —— 限流。
+                _appendFailures++;
+                if (_appendFailures == 1 || _appendFailures % 200 == 0)
+                    Log.Warn("append failed (" + _appendFailures + "x, "
+                             + _pendingWrites + " event(s) buffered): " + ex.Message);
                 CloseWriterLocked();
+
+                // 缓冲**不能丢**。读取游标早就前进了，这些事件一旦丢掉就永久没了
+                // （重扫也读不回来）。留在缓冲里等下一次 flush 重试；但如果文件被
+                // 长期占住，也不能让它无限涨，超过上限才放弃并明确记一笔。
+                if (_appendBuffer.Length > MaxRetainedAppendBytes)
+                {
+                    Log.Warn("giving up on " + _pendingWrites
+                             + " buffered event(s): append kept failing and the buffer hit "
+                             + (MaxRetainedAppendBytes / 1024) + " KB");
+                    _appendBuffer.Length = 0;
+                    _pendingWrites = 0;
+                }
+                return;
             }
             _appendBuffer.Length = 0;
             _pendingWrites = 0;
+            _appendFailures = 0;
         }
 
         private void CloseWriterLocked()
@@ -189,6 +214,7 @@ namespace CodingFire.Core
             {
                 FlushAppendsLocked();
                 CloseWriterLocked();
+                if (_cursorsDirty) { PersistCursors(); _cursorsDirty = false; }
             }
         }
 
@@ -345,8 +371,33 @@ namespace CodingFire.Core
         {
             lock (_gate)
             {
+                CursorState cur;
+                // 值没变就别标脏。扫描现在由文件事件驱动，一轮里每个被列出来的
+                // 日志文件都会走一次这里，而绝大多数文件这一轮根本没长 ——
+                // 原来每个文件都整份重写 cursors.json（临时文件 + 写 + 删 + 改名），
+                // 文件多的时候纯粹是磁盘churn，还把单轮扫描时间一起拖长。
+                if (_cursors.TryGetValue(path, out cur)
+                    && cur.Offset == offset
+                    && string.Equals(cur.Partial, partial, StringComparison.Ordinal))
+                    return;
+
                 _cursors[path] = new CursorState { Offset = offset, Partial = partial };
+                _cursorsDirty = true;
+            }
+        }
+
+        /// <summary>
+        /// 把游标落盘。扫描收尾时调一次即可，不要每个文件写一次。
+        /// 顺序上也更安全：调用点在事件落盘之后，所以崩溃最多导致重读一段日志
+        /// （插入按 id 幂等，不会重复计数），而不是丢掉还没落盘的事件。
+        /// </summary>
+        public void FlushCursors()
+        {
+            lock (_gate)
+            {
+                if (!_cursorsDirty) return;
                 PersistCursors();
+                _cursorsDirty = false;
             }
         }
 
@@ -356,6 +407,7 @@ namespace CodingFire.Core
             {
                 _cursors.Clear();
                 PersistCursors();
+                _cursorsDirty = false;
             }
         }
 

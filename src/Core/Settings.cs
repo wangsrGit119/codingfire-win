@@ -378,6 +378,9 @@ namespace CodingFire.Core
         private static readonly object Gate = new object();
         private static bool _disabled;
 
+        /// <summary>超过这个大小就轮转一份 .1。日志是长期常驻进程写的，不设上限会一直长。</summary>
+        private const long MaxBytes = 512 * 1024;
+
         public static void Warn(string message) { Write("WARN", message); }
         public static void Info(string message) { Write("INFO", message); }
 
@@ -388,6 +391,7 @@ namespace CodingFire.Core
             {
                 try
                 {
+                    RotateIfNeeded();
                     string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
                                   + " [" + level + "] " + message + Environment.NewLine;
                     File.AppendAllText(AppPaths.LogFile, line, new UTF8Encoding(false));
@@ -397,6 +401,21 @@ namespace CodingFire.Core
                     _disabled = true; // 磁盘不可写时静默降级，不要反复抛
                 }
             }
+        }
+
+        /// <summary>保留当前日志 + 一份 .1，超出就丢掉更老的。日志写得很少，不必省这个 stat。</summary>
+        private static void RotateIfNeeded()
+        {
+            try
+            {
+                var fi = new FileInfo(AppPaths.LogFile);
+                if (!fi.Exists || fi.Length < MaxBytes) return;
+
+                string previous = AppPaths.LogFile + ".1";
+                if (File.Exists(previous)) File.Delete(previous);
+                File.Move(AppPaths.LogFile, previous);
+            }
+            catch (Exception) { }
         }
     }
 }

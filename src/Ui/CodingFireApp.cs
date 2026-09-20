@@ -73,6 +73,9 @@ namespace CodingFire.Ui
 
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
             SystemEvents.SessionSwitch += OnSessionSwitch;
+            // 拔掉显示器 / 改分辨率后，保存的位置可能已经落在屏幕外，且没有任何东西
+            // 会再触发一次约束 —— 火就永远看不见了。只在改尺寸时约束是不够的。
+            SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
             if (Settings.FlameVisible) Flame.Show();
             Monitor.Start();
@@ -342,6 +345,16 @@ namespace CodingFire.Ui
             }
         }
 
+        /// <summary>显示器配置变了（拔插显示器、改分辨率、切主屏）：把火拉回可见区域。</summary>
+        private void OnDisplaySettingsChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (Flame != null) Flame.ConstrainToScreen();
+            }
+            catch (Exception ex) { Log.Warn("display change handling failed: " + ex.Message); }
+        }
+
         public void Quit()
         {
             if (_quitting) return;
@@ -351,6 +364,7 @@ namespace CodingFire.Ui
             {
                 SystemEvents.PowerModeChanged -= OnPowerModeChanged;
                 SystemEvents.SessionSwitch -= OnSessionSwitch;
+                SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             }
             catch (Exception) { }
 
