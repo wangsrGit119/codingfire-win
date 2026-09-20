@@ -11,6 +11,7 @@ _tools/
 
 # Local agent/workspace notes (not part of the project)
 .workbuddy/
+.workbuddy-ai/
 
 # Editor / OS noise
 .vs/
