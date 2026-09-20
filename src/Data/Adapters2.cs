@@ -195,6 +195,13 @@ namespace CodingFire.Data
 
         protected override string PrimaryRoot { get { return Path.Combine(HomeDir(), "projects"); } }
 
+        /// <summary>session_usage 回退读的是 home 下的 workbuddy.db，不在 projects 树里，得单独监听。</summary>
+        public override IEnumerable<string> WatchRoots()
+        {
+            yield return PrimaryRoot;
+            yield return Path.Combine(HomeDir(), "workbuddy.db");
+        }
+
         public override SourceConnectionState CheckConnection(out string detail)
         {
             var st = base.CheckConnection(out detail);
@@ -495,6 +502,13 @@ namespace CodingFire.Data
             }
             detail = AppPaths.Shorten(PrimaryRoot);
             return SourceConnectionState.NotFound;
+        }
+
+        /// <summary>账主要在几个 SQLite 库里，在日志树之外，库文件也要监听。</summary>
+        public override IEnumerable<string> WatchRoots()
+        {
+            foreach (string r in Roots) yield return r;
+            foreach (string db in IdeDbPaths()) yield return db;
         }
 
         public override List<string> DiscoverLogFiles(DateTime modifiedSince)

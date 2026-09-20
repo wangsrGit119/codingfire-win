@@ -79,6 +79,11 @@ namespace CodingFire.Fire
 
         private DateTime _lastTick = DateTime.Now;
         private double _burnIntensity;
+        /// <summary>
+        /// 只跟 60 秒窗口走的平滑火势。可见火势（_burnIntensity）会被突发窗口顶起来，
+        /// 拿它反推 tok/s 会在每次添柴时瞬间顶到显示上限；用这个量反推才是「平均烧多快」。
+        /// </summary>
+        private double _slowIntensity;
         private double _smoothedTokensPerSecond;
         private double _rateJitter;
         // 与 macOS 版一致：初始相位随机化，否则每次启动的抖动波形逐帧相同。
@@ -139,6 +144,7 @@ namespace CodingFire.Fire
         {
             _recentInflows.Clear();
             _burnIntensity = 0;
+            _slowIntensity = 0;
             _smoothedWeights.Clear();
             _smoothedTokensPerSecond = 0;
             _rateJitter = 0;
@@ -228,9 +234,15 @@ namespace CodingFire.Fire
                 next.SparkBurst = Math.Min(_tuning.MaxSparkBurst, next.SparkBurst + 0.2 + burst * 0.9);
             }
 
-            // 火势由滑动窗口掌握，这里只朝目标轻推一下，底火单独算
+            // 慢档：稳定燃烧水平，给 tok/s 读数当锚
+            _slowIntensity = Approach(_slowIntensity, SlowTargetIntensity(at),
+                                      _tuning.IntensityRiseSeconds, 0.35);
+
+            // 火势朝「此刻烧多旺」推一把；真正的回落交给 Advance。
+            // 目标一下跳得很高（添了一大把柴）就用更快的上升常数，火苗立刻窜起来。
             double target = TargetIntensity(at);
-            _burnIntensity = Math.Max(_burnIntensity, Math.Min(1.0, _burnIntensity + (target - _burnIntensity) * 0.55));
+            _burnIntensity = Math.Max(_burnIntensity,
+                Approach(_burnIntensity, target, _tuning.BurstRiseSeconds, 0.35));
             next.Intensity = _burnIntensity;
             next.Phase = FirePhase.Flame;
             LiveSnapshot = Compose(next);
@@ -252,6 +264,7 @@ namespace CodingFire.Fire
             PruneInflows(now);
             UpdateTokensPerSecond(now, dt);
 
+            double slowTarget = SlowTargetIntensity(now);
             double target = TargetIntensity(now);
             double fuel = LiveSnapshot.Fuel;
             double ember = LiveSnapshot.EmberHeat;
@@ -277,7 +290,16 @@ namespace CodingFire.Fire
                 fallTau = _tuning.IntensityFallSecondsIdle;
             }
 
-            double tau = target > _burnIntensity ? _tuning.IntensityRiseSeconds : fallTau;
+            // 慢档跟着 60 秒窗口走，用原来的上升时间常数。它只服务 tok/s 读数。
+            _slowIntensity = Approach(_slowIntensity, slowTarget, _tuning.IntensityRiseSeconds, dt);
+
+            // 可见火势：目标里含 6 秒突发项。目标一下跳得很高（添了一大把柴）就用
+            // 更快的上升常数，火苗立刻窜起来；回落仍然走上面那套慢的 fallTau，
+            // 于是「窜得快、塌得慢」—— 真营火就是这个形状。
+            double riseTau = (target - _burnIntensity) > _tuning.BurstJumpThreshold
+                ? _tuning.BurstRiseSeconds
+                : _tuning.IntensityRiseSeconds;
+            double tau = target > _burnIntensity ? riseTau : fallTau;
             double alpha = 1.0 - Math.Exp(-dt / Math.Max(0.05, tau));
             _burnIntensity += (target - _burnIntensity) * alpha;
             _burnIntensity = Math.Min(1.0, Math.Max(0, _burnIntensity));
@@ -322,7 +344,7 @@ namespace CodingFire.Fire
         /// </summary>
         internal double RateFromInflows(DateTime now)
         {
-            double window = Math.Max(1.0, _tuning.IntensityWindowSeconds);
+            double window = Math.Max(1.0, _tuning.RateWindowSeconds);
             DateTime cutoff = now.AddSeconds(-window);
             double credited = 0;
             for (int i = 0; i < _recentInflows.Count; i++)
@@ -335,10 +357,14 @@ namespace CodingFire.Fire
             return credited / window;
         }
 
-        /// <summary>把当前火势反查成 token/秒，让显示的速率跟看得见的火势一致。</summary>
+        /// <summary>
+        /// 把当前火势反查成 token/秒，让显示的速率跟看得见的火势一致。
+        /// 用慢档而不是可见火势：可见火势含 6 秒突发项，拿它反推会在每次添柴时
+        /// 直接顶到显示上限（一条 45k 的添柴反推出来是 3000 tok/s），读数就没意义了。
+        /// </summary>
         internal double RateFromFlame()
         {
-            return TokensPerSecondMatchingFlame(_burnIntensity);
+            return TokensPerSecondMatchingFlame(_slowIntensity);
         }
 
         /// <summary>
@@ -430,15 +456,49 @@ namespace CodingFire.Fire
             return tpm[tpm.Length - 1];
         }
 
+        /// <summary>
+        /// 火势窗口（IntensityWindowSeconds）下的火势：火苗此刻该烧多旺。
+        /// 窗口比速率读数短，所以活动一起来火就窜、一停火就落。
+        /// </summary>
         private double TargetIntensity(DateTime now)
         {
-            PruneInflows(now);
-            double window = Math.Max(1.0, _tuning.IntensityWindowSeconds);
+            return IntensityFromCredited(CreditedTokensIn(now, _tuning.IntensityWindowSeconds),
+                                         _tuning.IntensityWindowSeconds);
+        }
+
+        /// <summary>速率读数窗口（RateWindowSeconds）下的火势：平均烧多快。只服务 tok/s 读数。</summary>
+        private double SlowTargetIntensity(DateTime now)
+        {
+            return IntensityFromCredited(CreditedTokensIn(now, _tuning.RateWindowSeconds),
+                                         _tuning.RateWindowSeconds);
+        }
+
+        /// <summary>窗口内各条流入的计分之和（单条按 EventCreditTokens 封顶）。</summary>
+        private double CreditedTokensIn(DateTime now, double window)
+        {
+            double w = Math.Max(1.0, window);
+            DateTime cutoff = now.AddSeconds(-w);
             double credited = 0;
             for (int i = 0; i < _recentInflows.Count; i++)
+            {
+                if (_recentInflows[i].Date < cutoff) continue;
                 credited += Credit(_recentInflows[i].Tokens);
-            double tokensPerMinute = credited * (60.0 / window);
+            }
+            return credited;
+        }
+
+        private double IntensityFromCredited(double credited, double window)
+        {
+            double tokensPerMinute = credited * (60.0 / Math.Max(1.0, window));
             return IntensityFromTpm(tokensPerMinute);
+        }
+
+        /// <summary>指数逼近：dt 秒内向 target 走 (1 - e^(-dt/tau))。</summary>
+        private static double Approach(double current, double target, double tau, double dt)
+        {
+            double alpha = 1.0 - Math.Exp(-dt / Math.Max(0.05, tau));
+            double v = current + (target - current) * alpha;
+            return Math.Min(1.0, Math.Max(0, v));
         }
 
         // internal 而非 private：夹具要断言「上限真的作用在目标配色上」，
@@ -517,9 +577,21 @@ namespace CodingFire.Fire
             return next;
         }
 
+        /// <summary>
+        /// 流入记录要留到**最长**的那个窗口之外才能丢：火势窗口比速率窗口短，
+        /// 按火势窗口剪枝会把速率读数要用的记录提前扔掉。
+        /// </summary>
+        private double RetentionSeconds
+        {
+            get
+            {
+                return Math.Max(_tuning.IntensityWindowSeconds, _tuning.RateWindowSeconds);
+            }
+        }
+
         private void PruneInflows(DateTime now)
         {
-            DateTime cutoff = now.AddSeconds(-_tuning.IntensityWindowSeconds);
+            DateTime cutoff = now.AddSeconds(-RetentionSeconds);
             for (int i = _recentInflows.Count - 1; i >= 0; i--)
                 if (_recentInflows[i].Date < cutoff) _recentInflows.RemoveAt(i);
             if (_recentInflows.Count == 0) _lastInflowAt = null;

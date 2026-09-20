@@ -20,8 +20,24 @@ namespace CodingFire.Core
         private readonly object _gate = new object();
         private readonly List<UsageEvent> _events = new List<UsageEvent>();
         private readonly HashSet<string> _knownIds = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>
+        /// 出现过事件的日志文件路径。JsonlReader 每轮扫描对「每个没长过的文件」都要问一次
+        /// 「这个文件产出过事件吗」，原来是在 _events 上线性扫 —— 文件数 × 事件数，
+        /// 重度用户下会拖慢整轮扫描，进而拖慢火焰反应。改成 O(1) 集合查询。
+        /// </summary>
+        private readonly HashSet<string> _knownPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, CursorState> _cursors = new Dictionary<string, CursorState>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> _meta = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        // ---- 今日统计的增量累加器 ----
+        // 原来 TodayTotals / TodayHourlyTotals / TodayBreakdown 各扫一遍全库，
+        // 每轮扫描（4 秒）在 UI 线程上跑三次 O(45 天事件数)。改成插入时就累加，
+        // 查询只是取快照；只有跨天 / 重扫 / 删除事件时才整体重算。
+        private DateTime _statsDay = DateTime.MinValue;
+        private int _statTotal;
+        private readonly Dictionary<UsageSource, int> _statBySource = new Dictionary<UsageSource, int>();
+        private readonly int[] _statHourly = new int[24];
+        private int _statIn, _statOut, _statCacheRead, _statCacheWrite;
 
         private readonly StringBuilder _appendBuffer = new StringBuilder();
         private StreamWriter _appendWriter;
@@ -72,6 +88,7 @@ namespace CodingFire.Core
             }
 
             Log.Info("store loaded: " + kept + "/" + total + " events");
+            RecomputeStatsLocked(DateTime.Now.Date);
             if (needsCompact) RewriteFile();
         }
 
@@ -120,6 +137,9 @@ namespace CodingFire.Core
             {
                 if (e == null || e.Id == null || !_knownIds.Add(e.Id)) return false;
                 _events.Add(e);
+                if (!string.IsNullOrEmpty(e.FilePath)) _knownPaths.Add(e.FilePath);
+                EnsureStatsDayLocked();
+                AccumulateLocked(e, _statsDay.AddDays(1));
                 _appendBuffer.Append(EncodeLine(e)).Append('\n');
                 if (++_pendingWrites >= 64 || _appendBuffer.Length >= 128 * 1024) FlushAppendsLocked();
                 return true;
@@ -191,12 +211,8 @@ namespace CodingFire.Core
 
         public bool HasEventsForFilePath(string path)
         {
-            lock (_gate)
-            {
-                for (int i = 0; i < _events.Count; i++)
-                    if (string.Equals(_events[i].FilePath, path, StringComparison.OrdinalIgnoreCase)) return true;
-                return false;
-            }
+            if (string.IsNullOrEmpty(path)) return false;
+            lock (_gate) { return _knownPaths.Contains(path); }
         }
 
         public sealed class TodayStats
@@ -209,19 +225,10 @@ namespace CodingFire.Core
         {
             lock (_gate)
             {
+                EnsureStatsDayLocked(now);
                 var stats = new TodayStats();
-                DateTime start = now.Date;
-                DateTime end = start.AddDays(1);
-                for (int i = 0; i < _events.Count; i++)
-                {
-                    var e = _events[i];
-                    // 必须卡上界：时钟偏差或解析异常造出的「未来事件」不该算进今天
-                    if (e.Timestamp < start || e.Timestamp >= end) continue;
-                    stats.Total += e.Tokens;
-                    int cur;
-                    stats.BySource.TryGetValue(e.Source, out cur);
-                    stats.BySource[e.Source] = cur + e.Tokens;
-                }
+                stats.Total = _statTotal;
+                foreach (var kv in _statBySource) stats.BySource[kv.Key] = kv.Value;
                 return stats;
             }
         }
@@ -231,18 +238,9 @@ namespace CodingFire.Core
         {
             lock (_gate)
             {
-                var buckets = new int[24];
-                DateTime start = now.Date;
-                DateTime end = start.AddDays(1);
-                for (int i = 0; i < _events.Count; i++)
-                {
-                    var e = _events[i];
-                    if (e.Timestamp < start || e.Timestamp >= end) continue;
-                    int h = e.Timestamp.Hour;
-                    if (h >= 0 && h < 24) buckets[h] += e.Tokens;
-                }
+                EnsureStatsDayLocked(now);
                 var list = new List<HourlyUsage>(24);
-                for (int h = 0; h < 24; h++) list.Add(new HourlyUsage(h, buckets[h]));
+                for (int h = 0; h < 24; h++) list.Add(new HourlyUsage(h, _statHourly[h]));
                 return list;
             }
         }
@@ -251,20 +249,49 @@ namespace CodingFire.Core
         {
             lock (_gate)
             {
-                DateTime start = now.Date;
-                DateTime end = start.AddDays(1);
-                int input = 0, output = 0, cacheRead = 0, cacheWrite = 0;
-                for (int i = 0; i < _events.Count; i++)
-                {
-                    var e = _events[i];
-                    if (e.Timestamp < start || e.Timestamp >= end) continue;
-                    input += e.Breakdown.Input ?? 0;
-                    output += e.Breakdown.Output ?? 0;
-                    cacheRead += e.Breakdown.CacheRead ?? 0;
-                    cacheWrite += e.Breakdown.CacheWrite ?? 0;
-                }
-                return new UsageBreakdown(input, output, cacheRead, cacheWrite);
+                EnsureStatsDayLocked(now);
+                return new UsageBreakdown(_statIn, _statOut, _statCacheRead, _statCacheWrite);
             }
+        }
+
+        // ------------------------------------------------------------------
+        // 今日统计的增量维护
+        // ------------------------------------------------------------------
+
+        /// <summary>缓存的天不是调用方要的那天就整体重算（跨天、或调用方主动查别的日子）。</summary>
+        private void EnsureStatsDayLocked(DateTime wanted)
+        {
+            if (_statsDay != wanted.Date) RecomputeStatsLocked(wanted.Date);
+        }
+
+        private void EnsureStatsDayLocked() { EnsureStatsDayLocked(DateTime.Now); }
+
+        private void RecomputeStatsLocked(DateTime day)
+        {
+            _statsDay = day;
+            _statTotal = 0;
+            _statBySource.Clear();
+            for (int i = 0; i < 24; i++) _statHourly[i] = 0;
+            _statIn = _statOut = _statCacheRead = _statCacheWrite = 0;
+
+            DateTime end = day.AddDays(1);
+            for (int i = 0; i < _events.Count; i++) AccumulateLocked(_events[i], end);
+        }
+
+        /// <summary>把一条事件并入当前统计日；不在该日内的直接跳过（O(1)）。</summary>
+        private void AccumulateLocked(UsageEvent e, DateTime end)
+        {
+            if (e.Timestamp < _statsDay || e.Timestamp >= end) return;
+            _statTotal += e.Tokens;
+            int cur;
+            _statBySource.TryGetValue(e.Source, out cur);
+            _statBySource[e.Source] = cur + e.Tokens;
+            int h = e.Timestamp.Hour;
+            if (h >= 0 && h < 24) _statHourly[h] += e.Tokens;
+            _statIn += e.Breakdown.Input ?? 0;
+            _statOut += e.Breakdown.Output ?? 0;
+            _statCacheRead += e.Breakdown.CacheRead ?? 0;
+            _statCacheWrite += e.Breakdown.CacheWrite ?? 0;
         }
 
         /// <summary>按时间升序返回 since 之后的事件。</summary>
@@ -378,7 +405,20 @@ namespace CodingFire.Core
                 _events.Remove(remove[i]);
                 _knownIds.Remove(remove[i].Id);
             }
+            RebuildPathIndexLocked();
+            RecomputeStatsLocked(_statsDay == DateTime.MinValue ? DateTime.Now.Date : _statsDay);
             RewriteFile();
+        }
+
+        /// <summary>事件集合被整体改动后重建路径索引（只有删除/清理路径会走到）。</summary>
+        private void RebuildPathIndexLocked()
+        {
+            _knownPaths.Clear();
+            for (int i = 0; i < _events.Count; i++)
+            {
+                string p = _events[i].FilePath;
+                if (!string.IsNullOrEmpty(p)) _knownPaths.Add(p);
+            }
         }
 
         // ------------------------------------------------------------------
@@ -388,6 +428,7 @@ namespace CodingFire.Core
         private void AddInMemory(UsageEvent e)
         {
             _knownIds.Add(e.Id);
+            if (!string.IsNullOrEmpty(e.FilePath)) _knownPaths.Add(e.FilePath);
             _events.Add(e);
         }
 

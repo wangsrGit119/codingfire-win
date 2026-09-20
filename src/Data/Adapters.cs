@@ -79,6 +79,17 @@ namespace CodingFire.Data
         /// <summary>供 UI 显示的根目录（可能不存在）。</summary>
         public string RootForDisplay { get { return PrimaryRoot; } }
 
+        /// <summary>
+        /// 需要挂文件监听的路径（目录或文件）。
+        /// 默认只监听数据根目录；把用量写进 SQLite 的源必须在这里把库文件也带上，
+        /// 否则库的变更只能靠定时心跳扫描兜底，实时性差一截。
+        /// </summary>
+        public virtual IEnumerable<string> WatchRoots()
+        {
+            string root = PrimaryRoot;
+            if (!string.IsNullOrEmpty(root)) yield return root;
+        }
+
         /// <summary>返回连接状态与详情文本，语义对齐 macOS 版 connectionState()。</summary>
         public virtual SourceConnectionState CheckConnection(out string detail)
         {

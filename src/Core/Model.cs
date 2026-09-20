@@ -440,10 +440,34 @@ namespace CodingFire.Core
         }
     }
 
-    /// <summary>调参起点，数值与 macOS 版 FireTuning 完全一致。</summary>
+    /// <summary>调参起点。除注明外，数值与 macOS 版 FireTuning 一致。</summary>
     public sealed class FireTuning
     {
-        public double IntensityWindowSeconds = 60;
+        /// <summary>
+        /// 火势窗口：火苗「此刻烧多旺」的观察尺度。
+        ///
+        /// 这里**故意**比 macOS 版的 60 秒短。窗口只影响瞬态，不影响稳态：
+        /// 一个稳定速率 R 在任意窗口 W 下算出的 TPM 都是 60R（credited = R·W，
+        /// 再乘 60/W 归一），所以锚点表不用动。
+        ///
+        /// 但瞬态差得很远。60 秒窗口下，一轮对话结束后那批事件还要在窗口里
+        /// 待满 60 秒，火就一直亮着不掉 —— 用户感觉到的「不实时」主要是这个「不掉」，
+        /// 而不是「不涨」。缩到 20 秒，火跟着活动起落，才像营火。
+        /// </summary>
+        public double IntensityWindowSeconds = 20;
+
+        /// <summary>
+        /// 速率读数窗口：显示成 tok/s 的那个数字。
+        /// 保持 60 秒，因为它是「平均烧多快」，不是「刚刚那一下多猛」——
+        /// 窗口再短，单条记录（封顶 15000）除以窗口就会超过显示上限 320，读数永远顶格。
+        /// </summary>
+        public double RateWindowSeconds = 60;
+
+        /// <summary>突发时火势上升的时间常数。往营火里添一把柴，火是瞬间窜起来的。</summary>
+        public double BurstRiseSeconds = 0.7;
+
+        /// <summary>目标火势一下跳这么高才算「添了一大把柴」，才启用 BurstRiseSeconds。</summary>
+        public double BurstJumpThreshold = 0.08;
 
         /// <summary>分段 TPM → intensity：~0.8k 微火 · ~2.5k 小火 · ~12k 中火 · ~45k 大火 · ~180k 烈火</summary>
         public readonly double[] TpmAnchors = { 0, 800, 2500, 12000, 45000, 180000 };

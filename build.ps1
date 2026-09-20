@@ -30,6 +30,17 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+# Some hosts export the proxy settings twice under different casing (`http_proxy`
+# AND `HTTP_PROXY`). PowerShell 5.1's process launcher builds a case-SENSITIVE
+# dictionary out of the environment block and then dies with
+#   "已添加项。字典中的关键字:"http_proxy"所添加的关键字:"HTTP_PROXY""
+# The call operator swallows that exception, so the compiler never actually runs:
+# no output, and $LASTEXITCODE stays empty. Drop the duplicates through the .NET
+# API (the `$env:` provider is case-insensitive and does not reliably clear both).
+foreach ($v in @('http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY')) {
+    [System.Environment]::SetEnvironmentVariable($v, $null)
+}
+
 $root       = $PSScriptRoot
 $srcDir     = Join-Path $root 'src'
 $distDir    = if ($Net4) { Join-Path $root 'dist-net4' } else { Join-Path $root 'dist' }
@@ -115,9 +126,33 @@ if ($compiler.Modern) { $argList += '/langversion:latest' }
 $argList += $refArgs
 $argList += $sources
 
-$output = & $compiler.Path @argList 2>&1
-$exit = $LASTEXITCODE
-if ($output) { $output | ForEach-Object { Write-Host $_ } }
+# Launch through Start-Process rather than the call operator. `&` goes through the
+# same process launcher that trips over the duplicate proxy variables, and it
+# swallows the resulting exception: no compiler output and an empty $LASTEXITCODE,
+# which reads exactly like a silent compile failure. Start-Process also hands back
+# the real exit code plus both streams.
+$soFile = Join-Path ([System.IO.Path]::GetTempPath()) 'codingfire-csc-out.txt'
+$seFile = Join-Path ([System.IO.Path]::GetTempPath()) 'codingfire-csc-err.txt'
+[System.IO.File]::Delete($soFile)
+[System.IO.File]::Delete($seFile)
+
+# Start-Process joins -ArgumentList with spaces and does not quote, so any argument
+# containing a space has to be quoted by hand (the .NET 3.5 reference assemblies
+# live under "Program Files (x86)").
+$quoted = @()
+foreach ($a in $argList) {
+    if ($a -match '\s') { $quoted += ('"' + $a + '"') } else { $quoted += $a }
+}
+
+$proc = Start-Process -FilePath $compiler.Path -ArgumentList $quoted -NoNewWindow -Wait -PassThru `
+                      -RedirectStandardOutput $soFile -RedirectStandardError $seFile
+$exit = $proc.ExitCode
+
+$output = @()
+if (Test-Path -LiteralPath $soFile) { $output += [System.IO.File]::ReadAllLines($soFile) }
+if (Test-Path -LiteralPath $seFile) { $output += [System.IO.File]::ReadAllLines($seFile) }
+if ($output.Count -gt 0) { $output | ForEach-Object { Write-Host $_ } }
+
 if ($exit -ne 0 -or -not (Test-Path -LiteralPath $exePath)) {
     Write-Host "BUILD FAILED (exit $exit)" -ForegroundColor Red
     exit 1
