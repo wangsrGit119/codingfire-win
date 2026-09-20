@@ -41,6 +41,7 @@
 - **鼠标移到火上** —— 当日用量卡片、实时 tok/s、当前档位
 - **拖动** —— 换位置（会记住）
 - **右键 / 双击托盘图标** —— 菜单与统计控制台
+- **默认开机自启** —— 不想要的话在托盘菜单里取消勾选即可
 
 首次启动没有数据时，火保持「余烬」状态，属正常。
 
@@ -91,10 +92,14 @@ powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.0.0   # 打包 +
 |---|---|
 | `usage.ndjson` | 事件库，保留 45 天 |
 | `cursors.json` | 每个文件的读取游标 |
-| `settings.json` | 尺寸、位置、语言、配色 |
+| `settings.json` | 尺寸、位置、语言、配色、开机自启 |
 | `codingfire.log` | 仅出错时写 |
 
 设 `CODINGFIRE_DATA_DIR` 可切便携模式。
+
+唯一写在这个目录之外的东西，是「开机自启」在
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 下的一条值。
+它不需要管理员权限，关掉自启时会立刻被删掉。
 
 无界面自检：
 

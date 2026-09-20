@@ -38,6 +38,10 @@ namespace CodingFire.Ui
             L10n.Current = Settings.Language;
             SourceFlameColors.Attach(Settings);
 
+            // 开机自启默认开：这里把设置落到注册表，失败则反过来把设置同步成真实状态，
+            // 免得托盘上的勾骗人。放在 BuildTray 之前，菜单一建出来就是准的。
+            SyncAutoStart();
+
             Store = new UsageStore();
             Store.Open();
 
@@ -106,6 +110,14 @@ namespace CodingFire.Ui
             };
             pause.Click += delegate { SetPaused(pause.Checked); };
             menu.Items.Add(pause);
+
+            var autoStart = new ToolStripMenuItem(L10n.T("menu.autoStart"))
+            {
+                CheckOnClick = true,
+                Checked = Settings.AutoStart
+            };
+            autoStart.Click += delegate { SetAutoStart(autoStart.Checked); };
+            menu.Items.Add(autoStart);
 
             menu.Items.Add(new ToolStripSeparator());
 
@@ -181,6 +193,32 @@ namespace CodingFire.Ui
             Settings.Save();
             Fire.AnimationPaused = paused;
             RebuildTrayMenu();
+        }
+
+        /// <summary>托盘菜单里勾/取消「开机自启」。</summary>
+        public void SetAutoStart(bool enabled)
+        {
+            Settings.AutoStart = enabled;
+            Settings.Save();
+            SyncAutoStart();
+            RebuildTrayMenu();
+        }
+
+        /// <summary>
+        /// 把设置里的自启状态落到注册表。写不进去（组策略、权限、注册表被锁）时，
+        /// 反过来把设置同步成注册表的真实状态 —— 菜单上的勾必须反映事实。
+        /// </summary>
+        private void SyncAutoStart()
+        {
+            if (AutoStart.Apply(Settings.AutoStart)) return;
+
+            bool real = AutoStart.IsEnabled();
+            if (real == Settings.AutoStart) return;
+
+            Log.Warn("autostart could not be applied; settings synced to actual state: "
+                     + (real ? "on" : "off"));
+            Settings.AutoStart = real;
+            Settings.Save();
         }
 
         public void SetFlameSize(FlameSize size)

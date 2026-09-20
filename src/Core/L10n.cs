@@ -75,6 +75,7 @@ namespace CodingFire.Core
             { "menu.console",        new[] { "Console…",        "打开控制台…", "コンソール…", "콘솔 열기…" } },
             { "menu.resetPosition",  new[] { "Reset position",  "重置位置",   "位置をリセット", "위치 초기화" } },
             { "menu.togglePause",    new[] { "Pause / resume animation", "暂停 / 继续动画", "アニメーション一時停止", "애니메이션 일시정지" } },
+            { "menu.autoStart",      new[] { "Start with Windows", "开机自启", "Windows 起動時に開始", "Windows 시작 시 실행" } },
             { "menu.size",           new[] { "Campfire size",   "火焰尺寸",   "焚き火サイズ", "모닥불 크기" } },
             { "menu.language",       new[] { "Language",        "语言",       "言語", "언어" } },
             { "menu.about",          new[] { "About CodingFire",  "关于 CodingFire", "CodingFire について", "CodingFire 정보" } },

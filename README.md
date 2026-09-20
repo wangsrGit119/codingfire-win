@@ -43,6 +43,7 @@ Grab the latest zip from [Releases](../../releases), unpack it anywhere and run
 - **Hover the fire** - today's usage card, live tok/s, current tier
 - **Drag it** - move it around, the position is remembered
 - **Right-click / double-click the tray icon** - menu and statistics console
+- **Starts with Windows by default** - turn it off any time from the tray menu
 
 With no data yet the fire stays in an "embers" state. That is normal.
 
@@ -97,10 +98,15 @@ Everything lives in `%APPDATA%\CodingFire\`:
 |---|---|
 | `usage.ndjson` | Event store, 45-day retention |
 | `cursors.json` | Per-file read offsets |
-| `settings.json` | Size, position, language, colors |
+| `settings.json` | Size, position, language, colors, autostart |
 | `codingfire.log` | Errors only |
 
 Set `CODINGFIRE_DATA_DIR` to use a portable data directory instead.
+
+The one thing written outside that folder is a single
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` entry for the autostart
+toggle. It needs no admin rights, and it is deleted again the moment you turn
+autostart off.
 
 Headless self-checks:
 

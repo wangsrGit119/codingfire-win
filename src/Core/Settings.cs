@@ -1,7 +1,8 @@
 //
 //  Settings.cs — CodingFire for Windows
 //
-//  单文件 JSON 设置 + 本地路径约定。全部落在 %APPDATA%\CodingFire 下，不写注册表。
+//  单文件 JSON 设置 + 本地路径约定。全部落在 %APPDATA%\CodingFire 下。
+//  唯一例外是「开机自启」——那条必须写进 HKCU\...\Run，见 AutoStart.cs。
 //
 
 using System;
@@ -184,6 +185,11 @@ namespace CodingFire.Core
         public bool FlameVisible = true;
         public bool AnimationPaused;
         public bool ShowLiveRate = true;
+        /// <summary>
+        /// 开机自启。默认开 —— 首次运行就会把自启项挂上；
+        /// 托盘菜单可以关掉。真正生效的那条注册表值由 AutoStart 负责同步。
+        /// </summary>
+        public bool AutoStart = true;
         /// <summary>火焰主题色（归一化 RGB 0…1）。默认经典橙。</summary>
         public double[] FlameColor = new double[] { 1.0, 0.45, 0.12 };
         public bool AudioEnabled;
@@ -209,6 +215,8 @@ namespace CodingFire.Core
                     s.FlameVisible = root.Bool("visible") ?? true;
                     s.AnimationPaused = root.Bool("paused") ?? false;
                     s.ShowLiveRate = root.Bool("showLiveRate") ?? true;
+                    // 老配置文件里没有这个键 → 取默认值 true（默认开机自启）
+                    s.AutoStart = root.Bool("autoStart") ?? true;
                     // Flame color (stored as JSON array)
                     var fc = root.Arr("flameColor");
                     if (fc != null && fc.Count >= 3)
@@ -275,6 +283,7 @@ namespace CodingFire.Core
                     sb.Append("  \"visible\": ").Append(FlameVisible ? "true" : "false").Append(",\n");
                     sb.Append("  \"paused\": ").Append(AnimationPaused ? "true" : "false").Append(",\n");
                     sb.Append("  \"showLiveRate\": ").Append(ShowLiveRate ? "true" : "false").Append(",\n");
+                    sb.Append("  \"autoStart\": ").Append(AutoStart ? "true" : "false").Append(",\n");
                     sb.Append("  \"flameColor\": [")
                       .Append(FlameColor[0].ToString("0.####", CultureInfo.InvariantCulture)).Append(", ")
                       .Append(FlameColor[1].ToString("0.####", CultureInfo.InvariantCulture)).Append(", ")
