@@ -175,6 +175,11 @@ namespace CodingFire.Ui
             about.Click += delegate { OpenConsole(ConsoleTab.About); };
             menu.Items.Add(about);
 
+            // 项目地址：和「关于」挨着，点一下用默认浏览器打开仓库主页
+            var project = new ToolStripMenuItem(L10n.T("menu.project"));
+            project.Click += delegate { Links.Open(AppInfo.ProjectUrl); };
+            menu.Items.Add(project);
+
             var version = new ToolStripMenuItem(AppInfo.DisplayName);
             version.Enabled = false;
             menu.Items.Add(version);
@@ -400,6 +405,27 @@ namespace CodingFire.Ui
         {
             if (disposing) Quit();
             base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>
+    /// 打开外部链接。托盘菜单和控制台「关于」页共用这一处。
+    /// 没有默认浏览器、或被组策略拦下时静默记一条日志 ——
+    /// 打不开一个网页不该让整个程序崩掉。
+    /// </summary>
+    internal static class Links
+    {
+        public static void Open(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return;
+            try
+            {
+                System.Diagnostics.Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("open link failed: " + url + " — " + ex.Message);
+            }
         }
     }
 }

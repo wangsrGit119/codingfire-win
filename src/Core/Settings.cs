@@ -198,6 +198,12 @@ namespace CodingFire.Core
         /// <summary>"CodingFire 1.0.2" —— 托盘菜单项和窗口标题用这个。</summary>
         public static string DisplayName { get { return Name + " " + Version; } }
 
+        /// <summary>
+        /// 项目主页。托盘菜单和控制台「关于」页都用这一个常量 ——
+        /// 别在两处各写一份 URL，改起来一定会漏一个。
+        /// </summary>
+        public const string ProjectUrl = "https://github.com/wangsrGit119/codingfire-win";
+
         private static string ReadVersion()
         {
             try

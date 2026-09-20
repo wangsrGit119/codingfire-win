@@ -345,11 +345,28 @@ namespace CodingFire.Ui
                 BackColor = SystemColors.Window,
                 ScrollBars = ScrollBars.Vertical
             };
+            // 先加 Fill 再加 Bottom：WinForms 是从 Controls 末尾往前排 docking 的，
+            // 所以「后加的」占外圈、先加的填中间。
             _tabAbout.Controls.Add(text);
+
+            // 项目地址：URL 本身不随语言变，所以不进 L10n，直接用 AppInfo 里那一份。
+            _aboutLink = new LinkLabel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 28,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = SystemColors.Window,
+                Padding = new Padding(8, 0, 0, 0),
+                Text = AppInfo.ProjectUrl
+            };
+            _aboutLink.Click += delegate { Links.Open(AppInfo.ProjectUrl); };
+            _tabAbout.Controls.Add(_aboutLink);
+
             _aboutBox = text;
         }
 
         private TextBox _aboutBox;
+        private LinkLabel _aboutLink;
 
         private static Label SectionHeader()
         {

@@ -79,6 +79,7 @@ namespace CodingFire.Core
             { "menu.size",           new[] { "Campfire size",   "火焰尺寸",   "焚き火サイズ", "모닥불 크기" } },
             { "menu.language",       new[] { "Language",        "语言",       "言語", "언어" } },
             { "menu.about",          new[] { "About CodingFire",  "关于 CodingFire", "CodingFire について", "CodingFire 정보" } },
+            { "menu.project",        new[] { "Project page",     "项目主页",   "プロジェクトページ", "프로젝트 페이지" } },
             { "menu.quit",           new[] { "Quit",            "退出",       "終了", "종료" } },
 
             // ---- 控制台 ----
