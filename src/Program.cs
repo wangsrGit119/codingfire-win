@@ -233,39 +233,6 @@ namespace CodingFire
             foreach (var style in FirePreviews.All)
                 styles.Add(new KeyValuePair<string, FireSnapshot>(style.ToString().ToLowerInvariant(), style.Snapshot()));
 
-            // 再多加两档「混合来源配色」用于核对多色火焰
-            var mixed = FirePreviewStyle.Blaze.Snapshot();
-            var weights = new Dictionary<UsageSource, double>
-            {
-                { UsageSource.ClaudeCode, 0.4 },
-                { UsageSource.Codex, 0.25 },
-                { UsageSource.Cursor, 0.2 },
-                { UsageSource.Grok, 0.15 }
-            };
-            mixed.ColorMix = new FlameColorMix(weights);
-            styles.Add(new KeyValuePair<string, FireSnapshot>("mixed_blaze", mixed));
-
-            // 来源一多色带就糊成一片，所以有了「可见上限」。两张对照图：
-            // 同一份权重，一张不设上限，一张砍到 5 个来源。
-            var many = new Dictionary<UsageSource, double>();
-            var pool = UsageSources.All;
-            double totalMany = 0;
-            for (int i = 0; i < 12 && i < pool.Length; i++)
-            {
-                double weight = 12 - i;
-                many[pool[i]] = weight;
-                totalMany += weight;
-            }
-            foreach (var src in new List<UsageSource>(many.Keys)) many[src] /= totalMany;
-
-            var openBand = FirePreviewStyle.Blaze.Snapshot();
-            openBand.ColorMix = new FlameColorMix(many);
-            styles.Add(new KeyValuePair<string, FireSnapshot>("band12_open", openBand));
-
-            var cappedBand = FirePreviewStyle.Blaze.Snapshot();
-            cappedBand.ColorMix = new FlameColorMix(FlameColorMix.CapToTop(many, 5, 0.03));
-            styles.Add(new KeyValuePair<string, FireSnapshot>("band12_capped", cappedBand));
-
             double t = 0;
             foreach (var kv in styles)
             {

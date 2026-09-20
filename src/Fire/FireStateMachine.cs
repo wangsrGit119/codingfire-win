@@ -74,14 +74,7 @@ namespace CodingFire.Fire
 
         private readonly FireTuning _tuning = new FireTuning();
         private readonly List<Inflow> _recentInflows = new List<Inflow>();
-        private readonly Dictionary<UsageSource, double> _smoothedWeights = new Dictionary<UsageSource, double>();
         private readonly Random _rng = new Random();
-
-        /// <summary>
-        /// 当前的多来源配色。只在当日分布变化时重建（见 BuildColorMix），
-        /// 由 Compose 盖到每一帧的快照上。
-        /// </summary>
-        private FlameColorMix _colorMix = FlameColorMix.Classic;
 
         private DateTime _lastTick = DateTime.Now;
         private double _burnIntensity;
@@ -124,16 +117,9 @@ namespace CodingFire.Fire
             get
             {
                 if (CustomPreview != null) return CustomPreview;
-                if (PreviewStyle.HasValue) return WithColorMix(PreviewStyle.Value.Snapshot());
+                if (PreviewStyle.HasValue) return PreviewStyle.Value.Snapshot();
                 return LiveSnapshot;
             }
-        }
-
-        /// <summary>预览快照也要带上真实配色，否则控制台预览和桌面上的火不是一个颜色。</summary>
-        private FireSnapshot WithColorMix(FireSnapshot snap)
-        {
-            snap.ColorMix = _colorMix;
-            return snap;
         }
 
         // ------------------------------------------------------------------
@@ -158,12 +144,10 @@ namespace CodingFire.Fire
             _recentInflows.Clear();
             _burnIntensity = 0;
             _slowIntensity = 0;
-            _smoothedWeights.Clear();
             _smoothedTokensPerSecond = 0;
             _rateJitter = 0;
             TokensPerSecond = 0;
-            // color epoch bumped if needed
-            LiveSnapshot = WithColorMix(FireSnapshot.Extinguished());
+            LiveSnapshot = FireSnapshot.Extinguished();
             _lastTick = DateTime.Now;
         }
 
@@ -199,7 +183,6 @@ namespace CodingFire.Fire
                 SparkBurst = i,
                 Tier = tier,
                 FlameAccent = LiveSnapshot.FlameAccent,
-                ColorMix = _colorMix,
             };
         }
 
@@ -213,36 +196,7 @@ namespace CodingFire.Fire
         {
             TodayTokens = Math.Max(0, tokens);
             TodayBySource = bySource ?? new Dictionary<UsageSource, int>();
-            // 配色只在当日分布变化时重算。Compose 是 20Hz 调的，放在那里会把
-            // CapToTop 的排序每帧跑一遍 —— 没必要，分布一秒也变不了几次。
-            _colorMix = BuildColorMix(TodayBySource);
             LiveSnapshot = Compose(LiveSnapshot);
-        }
-
-        /// <summary>
-        /// 当日各来源占比 → 火焰配色权重。
-        ///
-        /// 用当日累计而不是最近窗口：颜色表达的是「今天这堆柴主要是什么木头」，
-        /// 换个工具跑两下就整把火换色，看起来像故障而不是信息。
-        ///
-        /// 权重只作用于**火星**（CampfireRenderer.RenderSparks）；火苗本体和辉光
-        /// 仍然跟着用户在设置里选的火焰颜色走，所以这个功能不会把用户的选择顶掉。
-        /// </summary>
-        private FlameColorMix BuildColorMix(Dictionary<UsageSource, int> bySource)
-        {
-            if (bySource == null || bySource.Count == 0) return FlameColorMix.Classic;
-
-            var weights = new Dictionary<UsageSource, double>(bySource.Count);
-            foreach (var kv in bySource)
-            {
-                if (kv.Value > 0) weights[kv.Key] = kv.Value;
-            }
-            if (weights.Count == 0) return FlameColorMix.Classic;
-
-            // 来源一多，每个色只占一两条缝，糊成一片。CapToTop 砍到能看清为止。
-            var capped = FlameColorMix.CapToTop(weights, _tuning.ColorMixMaxSources, _tuning.ColorMixMinShare);
-            if (capped.Count == 0) return FlameColorMix.Classic;
-            return new FlameColorMix(capped);
         }
 
         public void NotifyColorsChanged()
@@ -544,8 +498,6 @@ namespace CodingFire.Fire
             return Math.Min(1.0, Math.Max(0, v));
         }
 
-        // internal 而非 private：夹具要断言「上限真的作用在目标配色上」，
-        // 只测 CapToTop 这个纯函数证明不了接线是对的。
         /// <summary>TPM → 火势：分段不平坦，中火容易、大火次之、烈火很难。</summary>
         private double IntensityFromTpm(double tpm)
         {
@@ -586,9 +538,6 @@ namespace CodingFire.Fire
         private FireSnapshot Compose(FireSnapshot snap)
         {
             var next = snap.Clone();
-            // 配色答的是「今天烧的是什么」，跟此刻火势无关 —— 每帧都盖上去，
-            // 免得某条路径（Ingest / Advance / UpdateTodayTokens）漏了它。
-            next.ColorMix = _colorMix;
             double baseIntensity = DailyBaseIntensity();
             // 显示值 = max(实时火势, 静默底火)；底火绝不回灌进 burnIntensity
             double shown = Math.Max(_burnIntensity, baseIntensity);

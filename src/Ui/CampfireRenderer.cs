@@ -159,7 +159,7 @@ namespace CodingFire.Ui
                 // ---- 柴堆 ----
                 int logX = (int)Math.Round(originX - logW / 2);
                 int logY = (int)Math.Round(originY - logH / 2);
-                Blit(buffer, stride, panelW, panelH, logX, logY, (int)Math.Round(logW), (int)Math.Round(logH), _log, 1.0, null, 0);
+                Blit(buffer, stride, panelW, panelH, logX, logY, (int)Math.Round(logW), (int)Math.Round(logH), _log, 1.0);
 
                 // ---- 外发光光晕（柔和径向暖色，叠加） ----
                 if (_flameAlpha > 0.01)
@@ -234,7 +234,6 @@ namespace CodingFire.Ui
                 default: riseMax = 32 * px; break;
             }
 
-            var tintSources = ActiveSources(snap.ColorMix);
             int sparkW = Math.Max(1, (int)Math.Round(px));
             int sparkH = Math.Max(2, (int)Math.Round(px * 2));
 
@@ -257,10 +256,6 @@ namespace CodingFire.Ui
                 double alpha = Math.Max(0, life * (0.5 + snap.Intensity * 0.5));
                 if (alpha <= 0.02) continue;
 
-                double[] tint = null;
-                if (tintSources.Length > 0)
-                    tint = SourceFlameColors.Accent(tintSources[i % tintSources.Length]);
-
                 // 火星尾迹：往上飞时尾部淡出（基于上升速度）
                 double trailLen = Math.Max(2, speed * 0.08);
                 double trailAlpha = alpha * 0.25;
@@ -270,15 +265,13 @@ namespace CodingFire.Ui
                     int tx = cx;
                     int ty = cy + (int)(tr * trailLen * 0.4);
                     if (ty >= panelH) break;
-                    if (tintSources.Length > 0)
-                        tint = SourceFlameColors.Accent(tintSources[(i + tr) % tintSources.Length]);
                     Blit(buffer, stride, panelW, panelH,
                         tx - sparkW / 2, ty - sparkH / 2, sparkW, sparkH, _spark,
-                        trailAlpha * fade, tint, 0.5);
+                        trailAlpha * fade);
                 }
 
                 Blit(buffer, stride, panelW, panelH,
-                    cx - sparkW / 2, cy - sparkH / 2, sparkW, sparkH, _spark, alpha, tint, 0.65);
+                    cx - sparkW / 2, cy - sparkH / 2, sparkW, sparkH, _spark, alpha);
             }
         }
 
@@ -293,20 +286,6 @@ namespace CodingFire.Ui
                 default: return 5;
             }
         }
-
-        private static UsageSource[] ActiveSources(FlameColorMix mix)
-        {
-            if (mix == null || mix.IsClassic) return new UsageSource[0];
-            var list = new System.Collections.Generic.List<UsageSource>();
-            foreach (var s in UsageSources.All)
-            {
-                double w;
-                mix.Weights.TryGetValue(s, out w);
-                if (w > 0.02) list.Add(s);
-            }
-            return list.ToArray();
-        }
-
 
         /// <summary>Outer radial glow around the fire (additive, before flame is drawn).</summary>
         private void RenderFireGlow(byte[] buf, int stride, int pW, int pH,
@@ -475,7 +454,7 @@ namespace CodingFire.Ui
         }
 
         private static void Blit(byte[] dst, int stride, int w, int h, int dx, int dy, int dw, int dh,
-            Rgba[,] src, double alphaMul, double[] tint, double tintAmount)
+            Rgba[,] src, double alphaMul)
         {
             int sh = src.GetLength(0);
             int sw = src.GetLength(1);
@@ -499,12 +478,6 @@ namespace CodingFire.Ui
                     if (c.A == 0) continue;
 
                     double r = c.R, g = c.G, b = c.B, a = c.A * alphaMul;
-                    if (tint != null && tintAmount > 0)
-                    {
-                        r = r + (tint[0] * 255 - r) * tintAmount;
-                        g = g + (tint[1] * 255 - g) * tintAmount;
-                        b = b + (tint[2] * 255 - b) * tintAmount;
-                    }
                     int ai = (int)Math.Round(a);
                     if (ai <= 0) continue;
                     if (ai > 255) ai = 255;

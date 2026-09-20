@@ -269,144 +269,6 @@ namespace CodingFire.Core
         }
     }
 
-    /// <summary>多来源火焰配色权重（空 = 经典橙色火）。</summary>
-    public sealed class FlameColorMix
-    {
-        public readonly Dictionary<UsageSource, double> Weights;
-
-        public FlameColorMix() { Weights = new Dictionary<UsageSource, double>(); }
-
-        public FlameColorMix(Dictionary<UsageSource, double> weights)
-        {
-            Weights = weights ?? new Dictionary<UsageSource, double>();
-        }
-
-        public static readonly FlameColorMix Classic = new FlameColorMix();
-
-        public bool IsClassic
-        {
-            get
-            {
-                double sum = 0;
-                foreach (var kv in Weights) sum += kv.Value;
-                return sum < 0.02;
-            }
-        }
-
-        /// <summary>
-        /// 色带的可见性上限：色带只有 28 列，来源一多每色都只剩一条缝，
-        /// 糊成一片。这里砍到「能看清」为止——
-        ///
-        ///   1. 占比低于 <paramref name="minShare"/> 的来源不单独成色
-        ///      （它们一列都站不满，单独占位只会把相邻色搅浑）；
-        ///   2. 剩下的还多于 <paramref name="maxSources"/> 个时，只留最重的几个。
-        ///
-        /// 被砍掉的权重不丢弃，按比例并入留下来的来源（重新归一化），
-        /// 所以色带的「分量感」不会因为砍色而变淡。
-        /// <paramref name="maxSources"/> &lt;= 0 = 不限个数；<paramref name="minShare"/> &lt;= 0 = 不设门槛。
-        /// 排序是「权重降序 · 枚举序升序」，权重打平时结果同样确定。
-        /// </summary>
-        public static Dictionary<UsageSource, double> CapToTop(
-            Dictionary<UsageSource, double> weights, int maxSources, double minShare)
-        {
-            var result = new Dictionary<UsageSource, double>();
-            if (weights == null || weights.Count == 0) return result;
-
-            var all = new List<KeyValuePair<UsageSource, double>>();
-            double total = 0;
-            for (int i = 0; i < UsageSources.All.Length; i++)
-            {
-                var src = UsageSources.All[i];
-                double w;
-                if (!weights.TryGetValue(src, out w) || w <= 0) continue;
-                all.Add(new KeyValuePair<UsageSource, double>(src, w));
-                total += w;
-            }
-            if (all.Count == 0 || total <= 0) return result;
-
-            var kept = new List<KeyValuePair<UsageSource, double>>();
-            if (minShare > 0)
-            {
-                for (int i = 0; i < all.Count; i++)
-                    if (all[i].Value / total >= minShare) kept.Add(all[i]);
-                // 门槛把所有人都挡了（理论上不会发生）：退化成不过滤，别让火焰掉回经典橙。
-                if (kept.Count == 0) kept.AddRange(all);
-            }
-            else kept.AddRange(all);
-
-            if (maxSources > 0 && kept.Count > maxSources)
-            {
-                // 注意比较器的方向：返回正数 = a 排在 b 后面，所以「b 比 a 重」要返回 1，
-                // 这样才是降序（重的在前）。写反了就成了「只留最轻的几个」。
-                kept.Sort(delegate (KeyValuePair<UsageSource, double> a, KeyValuePair<UsageSource, double> b)
-                {
-                    if (a.Value != b.Value) return b.Value > a.Value ? 1 : -1;
-                    return ((int)a.Key).CompareTo((int)b.Key);
-                });
-                kept.RemoveRange(maxSources, kept.Count - maxSources);
-            }
-
-            double sum = 0;
-            for (int i = 0; i < kept.Count; i++) sum += kept[i].Value;
-            if (sum <= 0) return result;
-            for (int i = 0; i < kept.Count; i++) result[kept[i].Key] = kept[i].Value / sum;
-            return result;
-        }
-
-        /// <summary>
-        /// 按来源顺序切出柔和横向色带并做羽化，避免硬条纹；
-        /// 直接对应 macOS 版 FlameColorMix.columnWeights(width:)。
-        /// </summary>
-        public double[][] ColumnWeights(int width)
-        {
-            var sources = UsageSources.All;
-            var raw = new double[sources.Length];
-            double total = 0;
-            for (int i = 0; i < sources.Length; i++)
-            {
-                double w;
-                Weights.TryGetValue(sources[i], out w);
-                if (w < 0) w = 0;
-                raw[i] = w;
-                total += w;
-            }
-
-            var outRows = new double[Math.Max(width, 0)][];
-            for (int x = 0; x < outRows.Length; x++) outRows[x] = new double[sources.Length];
-
-            if (total <= 0.02 || width <= 0) return outRows;
-
-            var norm = new double[sources.Length];
-            for (int i = 0; i < sources.Length; i++) norm[i] = raw[i] / total;
-
-            var edges = new double[sources.Length + 1];
-            double cum = 0;
-            for (int i = 0; i < sources.Length; i++) { cum += norm[i]; edges[i + 1] = cum; }
-
-            const double feather = 0.14;
-            for (int x = 0; x < width; x++)
-            {
-                double u = (x + 0.5) / width;
-                var row = outRows[x];
-                for (int i = 0; i < sources.Length; i++)
-                {
-                    if (norm[i] <= 0.001) continue;
-                    double start = edges[i];
-                    double end = edges[i + 1];
-                    double center = (start + end) * 0.5;
-                    double half = Math.Max(0.06, (end - start) * 0.5 + feather * 0.5);
-                    double d = Math.Abs(u - center);
-                    double t = Math.Max(0, 1 - d / half);
-                    row[i] = t * t * (3 - 2 * t); // smoothstep
-                }
-                double s = 0;
-                for (int i = 0; i < row.Length; i++) s += row[i];
-                if (s > 0) for (int i = 0; i < row.Length; i++) row[i] /= s;
-            }
-            return outRows;
-        }
-    }
-
     public sealed class FireSnapshot
     {
         public double Intensity;
@@ -415,13 +277,12 @@ namespace CodingFire.Core
         public FirePhase Phase = FirePhase.Unlit;
         public double SparkBurst;
         public FireTier Tier = FireTier.Hush;
-        public FlameColorMix ColorMix = FlameColorMix.Classic;
-        /// <summary>用户选择的火焰主题色（归一化 RGB）。单色模式用。</summary>
+        /// <summary>用户选择的火焰主题色（归一化 RGB）。火苗、辉光和火星都跟它走。</summary>
         public double[] FlameAccent = new double[] { 0.95, 0.55, 0.2 };
 
         public static FireSnapshot Extinguished()
         {
-            return new FireSnapshot { Intensity = 0, Fuel = 0, EmberHeat = 0, Phase = FirePhase.Unlit, SparkBurst = 0, Tier = FireTier.Hush, ColorMix = FlameColorMix.Classic, FlameAccent = new double[] { 0.95, 0.55, 0.2 } };
+            return new FireSnapshot { Intensity = 0, Fuel = 0, EmberHeat = 0, Phase = FirePhase.Unlit, SparkBurst = 0, Tier = FireTier.Hush, FlameAccent = new double[] { 0.95, 0.55, 0.2 } };
         }
 
         public FireSnapshot Clone()
@@ -434,7 +295,6 @@ namespace CodingFire.Core
                 Phase = Phase,
                 SparkBurst = SparkBurst,
                 Tier = Tier,
-                ColorMix = ColorMix,
                 FlameAccent = (double[])FlameAccent.Clone(),
             };
         }
@@ -475,19 +335,6 @@ namespace CodingFire.Core
 
         /// <summary>单条日志最多记这么多 token（整轮 dump 的封顶）。</summary>
         public double EventCreditTokens = 45000;
-
-        /// <summary>
-        /// 一个来源要占窗口内多少占比，才有资格在色带上单独成色。
-        /// 色带 28 列，一列 ≈ 3.6%；比这更细的来源画出来只是一层脏色。
-        /// </summary>
-        public double ColorMixMinShare = 0.03;
-
-        /// <summary>
-        /// 色带最多同时出现几个来源的颜色。火星只有 12 颗，来源再多每色也分不到
-        /// 两颗，看起来就是一团杂色。砍掉的权重会按比例并回留下的来源，
-        /// 所以火的「分量感」不会因为砍色而变淡。
-        /// </summary>
-        public int ColorMixMaxSources = 5;
 
         public double IntensityRiseSeconds = 2.5;
         public double IntensityFallSeconds = 14;
