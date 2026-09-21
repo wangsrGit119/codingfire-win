@@ -9,6 +9,9 @@ Turn your AI coding token burn into a pixel campfire on the desktop.
 
 **English** · [简体中文](README.zh-CN.md)
 
+**Multi-platform build** (64-bit Windows, Linux, macOS) -
+**[wangsrGit119/codingfire](https://github.com/wangsrGit119/codingfire)**
+
 <p align="center">
   <img src="assets/example_01.gif" width="344" alt="CodingFire - campfire with a green-tinted flame">
   <img src="assets/example_02.gif" width="344" alt="CodingFire - campfire with the classic orange flame">
@@ -34,6 +37,9 @@ tools already write to disk. The faster you burn tokens, the bigger the fire.
 The binary targets .NET Framework 4.x / CLR 4.0 because the statistics console uses
 the WinForms Chart control. It is compiled `/platform:x86` and runs on 32- and
 64-bit Windows via WoW64.
+
+This build covers Windows only. On Linux, macOS or 64-bit Windows, use the
+multi-platform build: **[CodingFire](https://github.com/wangsrGit119/codingfire)**.
 
 ## Download and run
 

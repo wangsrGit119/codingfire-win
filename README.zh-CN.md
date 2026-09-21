@@ -2,6 +2,9 @@
 
 [English](README.md) · **简体中文**
 
+**多平台版**（64 位 Windows、Linux、macOS）——
+**[wangsrGit119/codingfire](https://github.com/wangsrGit119/codingfire)**
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%208%20%7C%2010%20%7C%2011-lightgrey)](#系统要求)
 [![.NET](https://img.shields.io/badge/.NET-4.x%20%2F%20CLR%204.0-512BD4)](#系统要求)
@@ -32,6 +35,9 @@
 
 产物以 .NET 4.x / CLR 4.0 为目标，统计控制台使用 WinForms Chart 控件；`/platform:x86`
 经 WoW64 通吃 32/64 位。
+
+本版本只覆盖 Windows。Linux、macOS 或 64 位 Windows 请用多平台版：
+**[CodingFire](https://github.com/wangsrGit119/codingfire)**。
 
 ## 下载与运行
 
